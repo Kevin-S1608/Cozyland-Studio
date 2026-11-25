@@ -1,6 +1,6 @@
 {
-  "name": "Cozyland",
-  "description": "🎙️ Cozyland is an AI-powered creative studio that transforms your ideas into immersive podcast experiences and interactive 3D explainers. ✨ Create engaging multi-speaker conversations, generate natural-sounding audio, explore synchronized transcripts, and bring complex topics to life through interactive visual storytelling. 🪐 Blending the power o",
+  "name": "Cozyland Studio",
+  "description": "Cozyland Studio is an AI-powered creative space built with Google AI Studio. Create AI-generated podcasts, explore voice experiences, chat with episode content, and bring complex ideas to life through interactive 3D explainers.",
   "requestFramePermissions": [],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
