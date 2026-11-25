@@ -1,0 +1,6 @@
+{
+  "name": "Cozyland",
+  "description": "AI podcast and interactive 3D explainer studio that turns a single line into a multilingual two-host podcast with real audio, synchronized transcripts, custom artwork, and dynamic 3D visualizations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
