@@ -18,13 +18,17 @@ Create conversations, listen to ideas unfold, and explore complex topics through
 
 ## 🌌 Enter Cozyland
 
-Cozyland turns a topic, question, article, or reference link into a two-host podcast experience — complete with AI-generated dialogue, natural-sounding speech, synchronized transcripts, custom cover artwork, and an interactive 3D explainer.
+Cozyland Studio is an AI-powered creative application developed with Google AI Studio. It turns a topic, question, article, or reference link into a two-host podcast experience — complete with AI-generated dialogue, natural-sounding speech, synchronized transcripts, custom cover artwork, and an interactive 3D explainer.
 
 At the heart of the experience are **Riya and Arjun**, two AI podcast hosts who bring ideas to life through conversational storytelling. Listen to their discussion, follow every spoken turn, jump to moments in the audio, and explore the subject through a connected 3D scene.
 
 Cozyland brings conversational AI, audio generation, visual storytelling, and interactive exploration together in one creative workspace.
 
 > **The Cozyland idea:** learning should feel less like studying a page and more like getting pulled into a great conversation.
+
+## 🚧 Development status
+
+Cozyland Studio is an actively evolving project. Podcast generation, audio playback, episode conversations, and deployment reliability are still being tested and refined. Some workflows may not behave as expected yet; this repository should be treated as a work in progress rather than a production-ready service.
 
 ## ✨ Inside the studio
 
@@ -109,6 +113,7 @@ The interface includes light and dark themes. Preferences such as language, dura
 | Area | Tools and technologies |
 |---|---|
 | **Frontend** | React 19 · TypeScript · Vite |
+| **AI development platform** | Google AI Studio |
 | **AI integration** | Google Gemini API · @google/genai |
 | **Audio** | Gemini text-to-speech · Browser Audio APIs |
 | **3D experience** | Three.js · WebGL · OrbitControls |
@@ -120,7 +125,7 @@ The interface includes light and dark themes. Preferences such as language, dura
 ## 🏗️ Project structure
 
 ```text
-Cozyland/
+Cozyland-Studio/
 ├── server/
 │   ├── ai.ts                  # Gemini client and AI utilities
 │   ├── podcastPipeline.ts     # Podcast generation pipeline
@@ -156,8 +161,8 @@ Cozyland/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/Kevin-S1608/Cozyland---Studio.git
-cd Cozyland---Studio
+git clone https://github.com/Kevin-S1608/Cozyland-Studio.git
+cd Cozyland-Studio
 ```
 
 ### 2. Install dependencies
@@ -235,7 +240,7 @@ No license file is currently included in this repository. Until a license is add
 
 **Cozyland** — a little space for big ideas.
 
-[Explore the repository](https://github.com/Kevin-S1608/Cozyland---Studio) · [Google AI Studio](https://aistudio.google.com/)
+[Explore the repository](https://github.com/Kevin-S1608/Cozyland-Studio) · [Google AI Studio](https://aistudio.google.com/)
 
 <sub>Made with curiosity, creativity, and a little help from AI. ✨</sub>
 </div>
