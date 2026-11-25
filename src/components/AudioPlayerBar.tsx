@@ -9,20 +9,14 @@ import {
   VolumeX,
 } from 'lucide-react';
 import type { DialogueTurn, Episode } from '../types/podcast';
+import { formatTime } from '../lib/format';
 import { CoverArtwork } from './CoverArtwork';
+import RIYA_AVATAR from '../assets/images/host_riya_avatar_160.webp';
+import ARJUN_AVATAR from '../assets/images/host_arjun_avatar_160.webp';
 
-const RIYA_AVATAR = '/src/assets/images/host_riya_avatar_1795597436232.jpg';
-const ARJUN_AVATAR = '/src/assets/images/host_arjun_avatar_1795597437586.jpg';
+export { formatTime };
 
 const SPEEDS = [0.75, 1, 1.25, 1.5, 2];
-
-export function formatTime(sec: number): string {
-  if (!Number.isFinite(sec) || sec < 0) return '00:00';
-  const total = Math.floor(sec);
-  const mins = Math.floor(total / 60);
-  const secs = total % 60;
-  return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
 
 interface AudioPlayerBarProps {
   episode: Episode;
@@ -60,6 +54,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const [playbackRate, setPlaybackRate] = useState<number>(1);
   const [audioError, setAudioError] = useState<string | null>(null);
   const fallbackTimerRef = useRef<number | null>(null);
+  const pendingSeekRef = useRef<number | null>(null);
 
   const isRealAudio = episode.audioProvider === 'gemini-tts' && Boolean(episode.audioUrl);
 
@@ -110,11 +105,17 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
     }
   };
 
-  // Handle seek requests from transcript or chapters
+  // Handle seek requests from transcript or chapters (deferred safely when preload="none")
   useEffect(() => {
     if (seekTargetSec === null) return;
     if (isRealAudio && audioRef.current) {
-      audioRef.current.currentTime = Math.max(0, Math.min(seekTargetSec, duration || 9999));
+      const clamped = Math.max(0, Math.min(seekTargetSec, duration || 9999));
+      if (audioRef.current.readyState >= 1) {
+        audioRef.current.currentTime = clamped;
+        pendingSeekRef.current = null;
+      } else {
+        pendingSeekRef.current = clamped;
+      }
     }
     onTimeUpdate(seekTargetSec);
     onClearSeekTarget();
@@ -264,15 +265,23 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
   const totalSec = duration || episode.totalDurationSec || 1;
 
   return (
-    <div className="sticky bottom-0 z-30 border-t border-[#E5DFF5] dark:border-white/10 bg-white/95 dark:bg-[#0D1020]/95 backdrop-blur-md px-4 py-2.5 shadow-lg">
+    <div
+      role="region"
+      aria-label="Podcast audio player"
+      className="sticky bottom-0 z-30 border-t border-[#E5DFF5] dark:border-white/10 bg-white/95 dark:bg-[#0D1020]/95 backdrop-blur-md px-4 py-2.5 shadow-lg"
+    >
       {isRealAudio && episode.audioUrl && (
         <audio
           ref={audioRef}
           src={episode.audioUrl}
-          preload="metadata"
+          preload="none"
           onLoadedMetadata={(e) => {
             const d = e.currentTarget.duration;
             if (Number.isFinite(d) && d > 0) setDuration(d);
+            if (pendingSeekRef.current !== null) {
+              e.currentTarget.currentTime = Math.min(pendingSeekRef.current, d || 9999);
+              pendingSeekRef.current = null;
+            }
           }}
           onTimeUpdate={(e) => onTimeUpdate(e.currentTarget.currentTime)}
           onEnded={() => onPlayingChange(false)}
@@ -296,18 +305,22 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
             <button
               type="button"
               onClick={onOpenTranscript}
-              className="text-left font-display font-semibold text-sm text-[#18122B] dark:text-white truncate block w-full hover:text-[#8B5CF6] transition-colors"
+              className="text-left font-display font-semibold text-sm text-[#18122B] dark:text-white truncate block w-full hover:text-[#6D28D9] dark:hover:text-[#C4B5FD] transition-colors"
             >
               {episode.plan.title}
             </button>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 mt-0.5">
               <img
                 src={speaker === 'Riya' ? RIYA_AVATAR : ARJUN_AVATAR}
                 alt={speaker}
+                width={16}
+                height={16}
+                loading="lazy"
+                decoding="async"
                 referrerPolicy="no-referrer"
                 className="w-4 h-4 rounded-full object-cover"
               />
-              <span className={speaker === 'Riya' ? 'text-[#EC4899] font-medium' : 'text-[#22D3EE] font-medium'}>
+              <span className={speaker === 'Riya' ? 'text-[#BE185D] dark:text-[#F472B6] font-medium' : 'text-[#0E7490] dark:text-[#22D3EE] font-medium'}>
                 {speaker}
               </span>
               <span aria-hidden="true">·</span>
@@ -337,7 +350,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               type="button"
               onClick={() => onPlayingChange(!isPlaying)}
               disabled={episode.audioProvider === 'none'}
-              className="w-10 h-10 rounded-full bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white flex items-center justify-center shadow-md hover:opacity-95 disabled:opacity-40 transition-opacity"
+              className="w-10 h-10 rounded-full bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white flex items-center justify-center shadow-md hover:opacity-95 disabled:opacity-40 transition-opacity"
               aria-label={isPlaying ? 'Pause episode' : 'Play episode'}
             >
               {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
@@ -364,7 +377,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
           </div>
 
           <div className="flex items-center gap-2.5">
-            <span className="font-mono-tabular text-[11px] text-slate-500 dark:text-slate-400 w-10 text-right shrink-0">
+            <span className="font-mono-tabular text-[11px] text-slate-600 dark:text-slate-300 w-10 text-right shrink-0">
               {formatTime(currentTimeSec)}
             </span>
             <input
@@ -377,11 +390,11 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               aria-label="Seek episode timeline"
               className="w-full h-1.5 accent-[#8B5CF6] cursor-pointer"
             />
-            <span className="font-mono-tabular text-[11px] text-slate-500 dark:text-slate-400 w-10 shrink-0">
+            <span className="font-mono-tabular text-[11px] text-slate-600 dark:text-slate-300 w-10 shrink-0">
               {formatTime(duration)}
             </span>
           </div>
-          {audioError && <p className="text-[11px] text-rose-500 text-center">{audioError}</p>}
+          {audioError && <p className="text-[11px] text-rose-600 dark:text-rose-400 text-center">{audioError}</p>}
         </div>
 
         {/* Right: Speed, Volume, Download */}
@@ -425,7 +438,7 @@ export const AudioPlayerBar: React.FC<AudioPlayerBarProps> = ({
               className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border border-[#E5DFF5] dark:border-white/10 text-slate-700 dark:text-slate-200 hover:border-[#22D3EE] transition-colors whitespace-nowrap"
               title="Download episode WAV audio"
             >
-              <Download className="w-3.5 h-3.5 text-[#22D3EE]" />
+              <Download className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#22D3EE]" />
               WAV
             </a>
           )}

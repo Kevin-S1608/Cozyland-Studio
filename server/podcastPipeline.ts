@@ -140,12 +140,12 @@ export async function runStageA(input: {
   style: PodcastStyle;
   signal?: AbortSignal;
 }): Promise<{ plan: EpisodePlan; referenceContext: string }> {
-  const ai = getGeminiClient();
   const cleanTopic = sanitizeText(input.topicInput);
   const { referenceContext, groundingUrls } = await resolveOptionalUrlContext(
     cleanTopic,
     input.referenceUrl
   );
+  getGeminiClient();
   const target = DURATION_TURN_TARGET[input.duration];
   const langRule = LANGUAGE_GUIDANCE[input.language];
 
@@ -279,7 +279,6 @@ export async function runUnifiedStageAB(input: {
   scene3D: ExplainerSceneData;
   coverSpec: CoverArtSpec;
 }> {
-  const ai = getGeminiClient();
   const cleanTopic = sanitizeText(input.topicInput);
 
   input.onEvent?.({
@@ -292,6 +291,7 @@ export async function runUnifiedStageAB(input: {
     cleanTopic,
     input.referenceUrl
   );
+  getGeminiClient();
 
   const target = DURATION_TURN_TARGET[input.duration];
   const langRule = LANGUAGE_GUIDANCE[input.language];

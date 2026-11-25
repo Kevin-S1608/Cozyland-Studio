@@ -2,6 +2,7 @@ import 'dotenv/config';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import multer from 'multer';
 import { createServer as createViteServer } from 'vite';
@@ -19,6 +20,7 @@ import {
   ALLOWED_AUDIO_MIME_TYPES,
   ChatRequestSchema,
   createRateLimiter,
+  EpisodePatchSchema,
   sanitizeText,
   StageARequestSchema,
   StageBRequestSchema,
@@ -86,18 +88,26 @@ async function startServer() {
   app.disable('x-powered-by');
   app.use(express.json({ limit: '4mb' }));
 
-  // Request ID & basic security headers
+  // Request ID & safe baseline security headers (preserving AI Studio iframe compatibility)
   app.use((req: Request, res: Response, next: NextFunction) => {
     const requestId = crypto.randomUUID().slice(0, 8);
     res.setHeader('X-Request-Id', requestId);
     res.setHeader('X-Content-Type-Options', 'nosniff');
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-DNS-Prefetch-Control', 'off');
+    res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=()');
     (req as Request & { requestId?: string }).requestId = requestId;
     next();
   });
 
   const apiLimiter = createRateLimiter({ windowMs: 60_000, maxRequests: 45 });
   const api = express.Router();
+
+  // Never cache dynamic/user-specific API responses by default
+  api.use((_req: Request, res: Response, next: NextFunction) => {
+    res.setHeader('Cache-Control', 'no-store, private');
+    next();
+  });
 
   // Ensure every response from /api sets JSON unless explicitly streaming SSE/audio
   api.get('/health', (_req: Request, res: Response) => {
@@ -395,6 +405,7 @@ async function startServer() {
           'Accept-Ranges': 'bytes',
           'Content-Length': chunkSize,
           'Content-Type': 'audio/wav',
+          'Cache-Control': 'private, max-age=3600',
         });
         fs.createReadStream(audioPath, { start, end }).pipe(res);
       } else {
@@ -402,6 +413,7 @@ async function startServer() {
           'Content-Length': fileSize,
           'Accept-Ranges': 'bytes',
           'Content-Type': 'audio/wav',
+          'Cache-Control': 'private, max-age=3600',
         });
         fs.createReadStream(audioPath).pipe(res);
       }
@@ -431,18 +443,22 @@ async function startServer() {
     }
   });
 
-  api.patch('/episodes/:id', async (req: Request, res: Response, next: NextFunction) => {
+  api.patch('/episodes/:id', apiLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
+      const parsed = EpisodePatchSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({
+          error: parsed.error.issues[0]?.message || 'Invalid episode update payload.',
+          code: 'VALIDATION_ERROR',
+        });
+      }
       const episode = await getEpisode(String(req.params.id));
       if (!episode) {
         return res.status(404).json({ error: 'Episode not found.', code: 'EPISODE_NOT_FOUND' });
       }
-      const title = typeof req.body.title === 'string' ? sanitizeText(req.body.title).slice(0, 180) : undefined;
-      const coverSpec = req.body.coverSpec && typeof req.body.coverSpec === 'object' ? req.body.coverSpec : undefined;
-      const coverImageDataUrl =
-        typeof req.body.coverImageDataUrl === 'string' && req.body.coverImageDataUrl.startsWith('data:image/')
-          ? req.body.coverImageDataUrl.slice(0, 1_500_000)
-          : undefined;
+      const title = parsed.data.title ? sanitizeText(parsed.data.title).slice(0, 180) : undefined;
+      const coverSpec = parsed.data.coverSpec;
+      const coverImageDataUrl = parsed.data.coverImageDataUrl;
 
       const updated = await saveEpisode({
         ...episode,
@@ -456,7 +472,7 @@ async function startServer() {
     }
   });
 
-  api.delete('/episodes/:id', async (req: Request, res: Response, next: NextFunction) => {
+  api.delete('/episodes/:id', apiLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const deleted = await deleteEpisode(String(req.params.id));
       if (!deleted) {
@@ -531,7 +547,7 @@ async function startServer() {
     }
   });
 
-  api.post('/voice/profile', async (req: Request, res: Response, next: NextFunction) => {
+  api.post('/voice/profile', apiLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const parsed = VoiceProfileSaveSchema.safeParse(req.body);
       if (!parsed.success) {
@@ -547,7 +563,7 @@ async function startServer() {
     }
   });
 
-  api.delete('/voice/profile/:id', async (req: Request, res: Response, next: NextFunction) => {
+  api.delete('/voice/profile/:id', apiLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
       const deleted = await deleteVoiceProfile(String(req.params.id));
       if (!deleted) {
@@ -665,6 +681,37 @@ async function startServer() {
   });
 
   const isProd = process.env.NODE_ENV === 'production';
+  const publicDir = path.resolve(process.cwd(), 'public');
+  const distDir = path.resolve(process.cwd(), 'dist');
+
+  const resolveStaticFile = (name: string) =>
+    isProd && fs.existsSync(path.join(distDir, name)) ? path.join(distDir, name) : path.join(publicDir, name);
+
+  // Serve crawl & AI discovery directives explicitly with strict MIME types before Vite/SPA fallbacks
+  app.get('/robots.txt', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(resolveStaticFile('robots.txt'));
+  });
+
+  app.get('/sitemap.xml', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/xml; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(resolveStaticFile('sitemap.xml'));
+  });
+
+  app.get('/llms.txt', (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(resolveStaticFile('llms.txt'));
+  });
+
+  app.get(['/ai-catalog.json', '/.well-known/ai-catalog.json'], (_req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'public, max-age=3600');
+    res.sendFile(resolveStaticFile('ai-catalog.json'));
+  });
+
   if (!isProd) {
     const vite = await createViteServer({
       server: { middlewareMode: true },
@@ -672,10 +719,111 @@ async function startServer() {
     });
     app.use(vite.middlewares);
   } else {
-    const distDir = path.resolve(process.cwd(), 'dist');
-    app.use(express.static(distDir));
-    app.get('*', (_req: Request, res: Response) => {
-      res.sendFile(path.join(distDir, 'index.html'));
+    const distAssetsDir = path.join(distDir, 'assets').replace(/\\/g, '/') + '/';
+    const gzipCache = new Map<string, Buffer>();
+    const COMPRESSIBLE_TEXT_MIME: Record<string, string> = {
+      '.js': 'application/javascript; charset=utf-8',
+      '.mjs': 'application/javascript; charset=utf-8',
+      '.css': 'text/css; charset=utf-8',
+      '.html': 'text/html; charset=utf-8',
+      '.json': 'application/json; charset=utf-8',
+      '.svg': 'image/svg+xml; charset=utf-8',
+      '.xml': 'application/xml; charset=utf-8',
+      '.txt': 'text/plain; charset=utf-8',
+    };
+
+    const sendCompressedTextIfAccepted = (
+      req: Request,
+      res: Response,
+      filePath: string,
+      cacheControl: string,
+      extraHeaders?: Record<string, string>
+    ): boolean => {
+      const ext = path.extname(filePath).toLowerCase();
+      const mime = COMPRESSIBLE_TEXT_MIME[ext];
+      if (!mime) return false;
+      const acceptEncoding = String(req.headers['accept-encoding'] || '');
+      if (!acceptEncoding.includes('gzip') || req.headers.range) return false;
+      if (!fs.existsSync(filePath)) return false;
+
+      let gz = gzipCache.get(filePath);
+      if (!gz) {
+        const raw = fs.readFileSync(filePath);
+        gz = zlib.gzipSync(raw, { level: zlib.constants.Z_BEST_COMPRESSION });
+        if (gzipCache.size < 250) {
+          gzipCache.set(filePath, gz);
+        }
+      }
+      res.setHeader('Content-Type', mime);
+      res.setHeader('Content-Encoding', 'gzip');
+      res.setHeader('Vary', 'Accept-Encoding');
+      res.setHeader('Cache-Control', cacheControl);
+      if (extraHeaders) {
+        for (const [k, v] of Object.entries(extraHeaders)) {
+          res.setHeader(k, v);
+        }
+      }
+      res.send(gz);
+      return true;
+    };
+
+    // Serve compressed hashed assets & index HTML cleanly on mobile/4G connections
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      if (req.method !== 'GET' || req.path.startsWith('/api')) return next();
+      const relPath = req.path === '/' ? 'index.html' : req.path.replace(/^\/+/, '');
+      const candidate = path.resolve(distDir, relPath);
+      if (!candidate.startsWith(distDir + path.sep) && candidate !== path.join(distDir, 'index.html')) {
+        return next();
+      }
+      if (!fs.existsSync(candidate) || fs.statSync(candidate).isDirectory()) {
+        return next();
+      }
+      const normalized = candidate.replace(/\\/g, '/');
+      const cacheControl = normalized.startsWith(distAssetsDir)
+        ? 'public, max-age=31536000, immutable'
+        : normalized.endsWith('.html')
+        ? 'no-cache, must-revalidate'
+        : 'public, max-age=3600';
+      const extraHeaders = normalized.endsWith('index.html')
+        ? { Link: '</.well-known/ai-catalog.json>; rel="ai-catalog"' }
+        : undefined;
+      if (sendCompressedTextIfAccepted(req, res, candidate, cacheControl, extraHeaders)) {
+        return;
+      }
+      next();
+    });
+
+    app.use(
+      express.static(distDir, {
+        etag: true,
+        lastModified: true,
+        setHeaders: (res, filePath) => {
+          const normalized = filePath.replace(/\\/g, '/');
+          if (normalized.startsWith(distAssetsDir)) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+          } else if (/\.(webp|jpe?g|png|ico|svg|woff2?)$/i.test(normalized)) {
+            res.setHeader('Cache-Control', 'public, max-age=604800, stale-while-revalidate=86400');
+          } else if (/\/(robots\.txt|sitemap\.xml|llms\.txt|ai-catalog\.json)$/i.test(normalized)) {
+            res.setHeader('Cache-Control', 'public, max-age=3600');
+          } else if (normalized.endsWith('.html')) {
+            res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+            res.setHeader('Link', '</.well-known/ai-catalog.json>; rel="ai-catalog"');
+          }
+        },
+      })
+    );
+    app.get('*', (req: Request, res: Response) => {
+      const indexHtmlPath = path.join(distDir, 'index.html');
+      if (
+        sendCompressedTextIfAccepted(req, res, indexHtmlPath, 'no-cache, must-revalidate', {
+          Link: '</.well-known/ai-catalog.json>; rel="ai-catalog"',
+        })
+      ) {
+        return;
+      }
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+      res.setHeader('Link', '</.well-known/ai-catalog.json>; rel="ai-catalog"');
+      res.sendFile(indexHtmlPath);
     });
   }
 
@@ -683,6 +831,10 @@ async function startServer() {
     console.log(`Cozyland Studio listening on http://0.0.0.0:${PORT}`);
   });
 }
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Cozyland UnhandledRejection]', reason instanceof Error ? reason.message : String(reason));
+});
 
 startServer().catch((err) => {
   console.error('Failed to start Cozyland server:', err);

@@ -20,7 +20,7 @@ import {
   type PodcastStyle,
   SUPPORTED_LANGUAGES,
 } from '../types/podcast';
-import { formatTime } from './AudioPlayerBar';
+import { formatTime } from '../lib/format';
 import { CoverArtwork } from './CoverArtwork';
 
 interface LibraryViewProps {
@@ -99,7 +99,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
         <button
           type="button"
           onClick={onGoCreate}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white self-start whitespace-nowrap"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white self-start whitespace-nowrap"
         >
           <Sparkles className="w-4 h-4" />
           New Episode
@@ -109,13 +109,14 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
       {/* Search & Filter Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
         <div className="sm:col-span-6 relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-slate-500 dark:text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            aria-label="Search episodes by title or topic"
             placeholder="Search episodes by title or topic..."
-            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-white dark:bg-[#111526] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white focus:outline-none focus:border-[#8B5CF6]"
+            className="w-full pl-10 pr-4 py-2.5 rounded-xl text-sm bg-white dark:bg-[#111526] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-[#8B5CF6]"
           />
         </div>
 
@@ -158,7 +159,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
           <p className="font-display font-semibold text-base text-[#18122B] dark:text-white">
             No matching episodes found
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
+          <p className="text-xs text-slate-600 dark:text-slate-300">
             Try clearing your filters or create a brand-new episode from a single line.
           </p>
         </div>
@@ -172,7 +173,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
               <CoverArtwork episode={ep} size="md" />
 
               <div className="min-w-0 flex-1 space-y-2">
-                <div className="text-xs text-slate-500 dark:text-slate-400">
+                <div className="text-xs text-slate-600 dark:text-slate-300">
                   {ep.plan.language} · {ep.plan.style} · {formatTime(ep.totalDurationSec)}
                 </div>
 
@@ -182,6 +183,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       type="text"
                       value={editTitle}
                       onChange={(e) => setEditTitle(e.target.value)}
+                      aria-label="Episode title"
                       className="flex-1 px-2.5 py-1 rounded-lg text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#8B5CF6] text-[#18122B] dark:text-white"
                     />
                     <button
@@ -207,7 +209,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   </h3>
                 )}
 
-                <p className="text-xs text-slate-600 dark:text-slate-400 line-clamp-2">
+                <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-2">
                   {ep.plan.topicOverview}
                 </p>
 
@@ -215,7 +217,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                   <button
                     type="button"
                     onClick={() => onOpenEpisode(ep, 'transcript')}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#8B5CF6] text-white hover:bg-[#7C3AED] whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#6D28D9] text-white hover:bg-[#5B21B6] whitespace-nowrap"
                   >
                     <Play className="w-3.5 h-3.5" />
                     Play &amp; Transcript
@@ -233,7 +235,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       setEditingId(ep.id);
                       setEditTitle(ep.plan.title);
                     }}
-                    className="p-1.5 rounded-lg text-slate-400 hover:text-[#8B5CF6]"
+                    className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-[#6D28D9] dark:hover:text-[#C4B5FD]"
                     aria-label="Rename episode"
                     title="Rename episode"
                   >
@@ -252,7 +254,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
-                        className="px-2 py-1 rounded-lg text-xs text-slate-500"
+                        className="px-2 py-1 rounded-lg text-xs text-slate-600 dark:text-slate-300"
                       >
                         Cancel
                       </button>
@@ -261,7 +263,7 @@ export const LibraryView: React.FC<LibraryViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteId(ep.id)}
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-rose-500"
+                      className="p-1.5 rounded-lg text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400"
                       aria-label="Delete episode"
                       title="Delete episode"
                     >
@@ -318,33 +320,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
             type="button"
+            aria-pressed={theme === 'light'}
             onClick={() => onThemeChange('light')}
-            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${
               theme === 'light'
                 ? 'border-[#8B5CF6] bg-[#F3EEFF] text-[#18122B]'
-                : 'border-[#E5DFF5] dark:border-white/10 text-slate-600 dark:text-slate-300'
+                : 'border-[#E5DFF5] dark:border-white/10 text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Sun className="w-5 h-5 text-[#FB923C]" />
+            <Sun className="w-5 h-5 text-[#C2410C] dark:text-[#FB923C]" />
             <div>
               <div className="font-semibold text-sm">Light Studio</div>
-              <div className="text-xs opacity-75">Soft lavender &amp; bright studio surfaces</div>
+              <div className="text-xs opacity-90">Soft lavender &amp; bright studio surfaces</div>
             </div>
           </button>
 
           <button
             type="button"
+            aria-pressed={theme === 'dark'}
             onClick={() => onThemeChange('dark')}
-            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-all ${
+            className={`flex items-center gap-3 p-4 rounded-xl border text-left transition-colors ${
               theme === 'dark'
                 ? 'border-[#8B5CF6] bg-[#1E193E] text-white'
-                : 'border-[#E5DFF5] dark:border-white/10 text-slate-600 dark:text-slate-300'
+                : 'border-[#E5DFF5] dark:border-white/10 text-slate-700 dark:text-slate-200'
             }`}
           >
-            <Moon className="w-5 h-5 text-[#22D3EE]" />
+            <Moon className="w-5 h-5 text-[#0E7490] dark:text-[#22D3EE]" />
             <div>
               <div className="font-semibold text-sm">Dark Studio</div>
-              <div className="text-xs opacity-75">Deep navy canvas with glowing violet &amp; cyan accents</div>
+              <div className="text-xs opacity-90">Deep navy canvas with glowing violet &amp; cyan accents</div>
             </div>
           </button>
         </div>
@@ -358,10 +362,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div>
-            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
+            <label htmlFor="settings-default-lang" className="text-xs font-semibold text-slate-700 dark:text-slate-200 block mb-1.5">
               Default Language
             </label>
             <select
+              id="settings-default-lang"
               value={defaultLanguage}
               onChange={(e) => onDefaultLanguageChange(e.target.value as PodcastLanguage)}
               className="w-full px-3 py-2.5 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
@@ -375,10 +380,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
+            <label htmlFor="settings-default-dur" className="text-xs font-semibold text-slate-700 dark:text-slate-200 block mb-1.5">
               Default Length
             </label>
             <select
+              id="settings-default-dur"
               value={defaultDuration}
               onChange={(e) => onDefaultDurationChange(e.target.value as PodcastDuration)}
               className="w-full px-3 py-2.5 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
@@ -392,10 +398,11 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block mb-1.5">
+            <label htmlFor="settings-default-style" className="text-xs font-semibold text-slate-700 dark:text-slate-200 block mb-1.5">
               Default Style
             </label>
             <select
+              id="settings-default-style"
               value={defaultStyle}
               onChange={(e) => onDefaultStyleChange(e.target.value as PodcastStyle)}
               className="w-full px-3 py-2.5 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"

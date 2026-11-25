@@ -75,7 +75,11 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
   const [projectedLabels, setProjectedLabels] = useState<
     Array<{ id: string; label: string; x: number; y: number; visible: boolean; color: string }>
   >([]);
-  const [autoRotate, setAutoRotate] = useState<boolean>(true);
+  const [autoRotate, setAutoRotate] = useState<boolean>(() =>
+    typeof window === 'undefined'
+      ? true
+      : !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  );
   const [showLabels, setShowLabels] = useState<boolean>(true);
   const [dockCollapsed, setDockCollapsed] = useState<boolean>(false);
   const [renderMode, setRenderMode] = useState<'3d' | 'svg'>(() =>
@@ -659,9 +663,9 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
             <span aria-hidden="true">·</span>
             <span>{scene3D.edges.length} links</span>
           </div>
-          <h3 className="font-display font-semibold text-base text-white mt-0.5 truncate">
+          <h2 className="font-display font-semibold text-base text-white mt-0.5 truncate">
             {scene3D.title}
-          </h3>
+          </h2>
           <p className="text-xs text-slate-300 mt-1 line-clamp-2">{scene3D.centralMetaphor}</p>
         </div>
       </div>
@@ -700,8 +704,8 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                   }}
                   className={`absolute top-0 left-0 z-10 px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors whitespace-nowrap ${
                     selectedNodeId === lbl.id
-                      ? 'bg-[#8B5CF6] border-white text-white shadow-lg'
-                      : 'bg-[#0F172A]/85 border-white/15 text-slate-100 hover:border-[#22D3EE]'
+                      ? 'bg-[#6D28D9] border-white text-white shadow-lg'
+                      : 'bg-[#0F172A]/90 border-white/15 text-slate-100 hover:border-[#22D3EE]'
                   }`}
                 >
                   {lbl.label}
@@ -756,7 +760,7 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                     />
                     <span className="font-medium">{selectedNode.category}</span>
                     <span aria-hidden="true">·</span>
-                    <span className="text-slate-400">
+                    <span className="text-slate-300">
                       {connectedEdges.length} connections
                     </span>
                   </div>
@@ -770,7 +774,7 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                   <button
                     type="button"
                     onClick={() => onJumpToChapter(selectedNode.chapterId)}
-                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white hover:opacity-95 transition-opacity shrink-0 whitespace-nowrap"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white hover:opacity-95 transition-opacity shrink-0 whitespace-nowrap"
                   >
                     <Play className="w-3.5 h-3.5" />
                     Hear in Episode
@@ -786,14 +790,15 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                   <button
                     key={node.id}
                     type="button"
+                    aria-pressed={selectedNodeId === node.id}
                     onClick={() => {
                       setSelectedNodeId(node.id);
                       cameraActionRef.current.focusNodeId = node.id;
                     }}
                     className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors whitespace-nowrap shrink-0 border ${
                       selectedNodeId === node.id
-                        ? 'bg-[#8B5CF6] border-[#C4B5FD] text-white'
-                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                        ? 'bg-[#6D28D9] border-[#C4B5FD] text-white'
+                        : 'bg-white/5 border-white/10 text-slate-200 hover:bg-white/10'
                     }`}
                   >
                     {node.label}
@@ -827,11 +832,12 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                   </button>
                   <button
                     type="button"
+                    aria-pressed={autoRotate}
                     onClick={() => setAutoRotate((v) => !v)}
                     className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border whitespace-nowrap ${
                       autoRotate
                         ? 'bg-[#22D3EE]/15 border-[#22D3EE]/50 text-[#22D3EE]'
-                        : 'bg-white/5 border-white/10 text-slate-300'
+                        : 'bg-white/5 border-white/10 text-slate-200'
                     }`}
                     title="Toggle auto-orbit"
                   >
@@ -840,11 +846,12 @@ export const Explainer3D: React.FC<Explainer3DProps> = ({
                   </button>
                   <button
                     type="button"
+                    aria-pressed={showLabels}
                     onClick={() => setShowLabels((v) => !v)}
                     className={`inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs border whitespace-nowrap ${
                       showLabels
                         ? 'bg-[#8B5CF6]/20 border-[#8B5CF6]/60 text-[#C4B5FD]'
-                        : 'bg-white/5 border-white/10 text-slate-300'
+                        : 'bg-white/5 border-white/10 text-slate-200'
                     }`}
                     title="Toggle 3D concept labels"
                   >
@@ -937,8 +944,17 @@ const SvgExplainerFallback: React.FC<{
           return (
             <g
               key={node.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Select concept ${node.label}`}
               onClick={() => onSelectNode(node.id)}
-              className="cursor-pointer"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onSelectNode(node.id);
+                }
+              }}
+              className="cursor-pointer focus:outline-none"
             >
               <circle
                 cx={pt.x}

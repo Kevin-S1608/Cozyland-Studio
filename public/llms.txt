@@ -1,0 +1,14 @@
+# Cozyland Studio
+
+> Cozyland Studio is an AI-powered podcast creation and interactive 3D explainer web application. From a single line, article, or URL, dual conversational hosts (Riya and Arjun) generate grounded scripts, spoken multilingual audio across 14 languages, custom cover artwork, and interactive Three.js concept scenes.
+
+Public documentation and capability manifests for Cozyland Studio are listed below. API endpoints require interactive session requests and exclude private runtime secrets.
+
+## Public Application
+- [Cozyland Studio Web App](https://cozyland.ai.studio/): Create multilingual two-host AI podcasts, inspect synchronized transcripts, and explore interactive 3D concept explainers.
+- [Sitemap](https://cozyland.ai.studio/sitemap.xml): XML sitemap of public Cozyland Studio routes.
+- [Robots Policy](https://cozyland.ai.studio/robots.txt): Crawler access rules for search engines and automated agents.
+
+## Machine-Readable Discovery
+- [AI Catalog Manifest](https://cozyland.ai.studio/.well-known/ai-catalog.json): Standardized Agentic Resource Discovery (ARD) JSON manifest describing Cozyland Studio's public capabilities.
+- [AI Catalog Alias](https://cozyland.ai.studio/ai-catalog.json): Root-path copy of the Cozyland Studio AI Catalog Manifest.

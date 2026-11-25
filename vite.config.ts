@@ -4,8 +4,12 @@ import fs from 'fs';
 import path from 'path';
 import {defineConfig} from 'vite';
 
-export default defineConfig(() => {
+export default defineConfig(({ command }) => {
   return {
+    define:
+      command === 'build'
+        ? { 'process.env.NODE_ENV': JSON.stringify('production') }
+        : undefined,
     plugins: [
       react(),
       tailwindcss(),
@@ -31,6 +35,21 @@ export default defineConfig(() => {
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
+      },
+    },
+    build: {
+      minify: 'esbuild',
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes('node_modules/three')) {
+              return 'three-vendor';
+            }
+            if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
+              return 'react-vendor';
+            }
+          },
+        },
       },
     },
     server: {

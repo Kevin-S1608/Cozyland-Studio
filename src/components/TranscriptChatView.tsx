@@ -13,11 +13,10 @@ import {
 } from 'lucide-react';
 import { apiJson } from '../lib/api';
 import type { ChatMessage, CoverArtSpec, Episode } from '../types/podcast';
-import { formatTime } from './AudioPlayerBar';
+import { formatTime, safeExternalUrl } from '../lib/format';
 import { CoverArtwork } from './CoverArtwork';
-
-const RIYA_AVATAR = '/src/assets/images/host_riya_avatar_1795597436232.jpg';
-const ARJUN_AVATAR = '/src/assets/images/host_arjun_avatar_1795597437586.jpg';
+import RIYA_AVATAR from '../assets/images/host_riya_avatar_160.webp';
+import ARJUN_AVATAR from '../assets/images/host_arjun_avatar_160.webp';
 
 interface TranscriptChatViewProps {
   episode: Episode;
@@ -128,8 +127,8 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
 
           <div className="flex-1 min-w-0 space-y-4">
             <div>
-              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <span className="font-medium text-[#8B5CF6] dark:text-[#C4B5FD]">
+              <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 dark:text-slate-300">
+                <span className="font-medium text-[#5B21B6] dark:text-[#C4B5FD]">
                   {episode.plan.language}
                 </span>
                 <span aria-hidden="true">·</span>
@@ -160,7 +159,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                 type="button"
                 onClick={() => onPlayingChange(!isPlaying)}
                 disabled={episode.audioProvider === 'none'}
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white shadow-sm hover:opacity-95 disabled:opacity-40 transition-opacity whitespace-nowrap"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white shadow-sm hover:opacity-95 disabled:opacity-40 transition-opacity whitespace-nowrap"
               >
                 {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
                 {isPlaying ? 'Pause Episode' : 'Play Episode'}
@@ -171,7 +170,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                 onClick={onOpen3D}
                 className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#E2DAF5] dark:border-white/15 bg-[#F8F7FC] dark:bg-white/5 text-[#18122B] dark:text-white hover:border-[#22D3EE] transition-colors whitespace-nowrap"
               >
-                <Sparkles className="w-4 h-4 text-[#22D3EE]" />
+                <Sparkles className="w-4 h-4 text-[#0E7490] dark:text-[#22D3EE]" />
                 Explore 3D Model
               </button>
 
@@ -180,7 +179,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                   type="button"
                   onClick={() => onRetryAudio(episode)}
                   disabled={isRetryingAudio}
-                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#FB923C]/50 bg-[#FB923C]/10 text-[#C2410C] dark:text-[#FDBA74] hover:bg-[#FB923C]/20 transition-colors whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium border border-[#FB923C]/50 bg-[#FB923C]/10 text-[#9A3412] dark:text-[#FDBA74] hover:bg-[#FB923C]/20 transition-colors whitespace-nowrap"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRetryingAudio ? 'animate-spin' : ''}`} />
                   {isRetryingAudio ? 'Synthesizing Studio Audio...' : 'Generate Studio AI Audio'}
@@ -189,7 +188,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
             </div>
 
             {/* Quality Control & Audio Provider Notice */}
-            <div className="pt-3 border-t border-[#EEEAF9] dark:border-white/10 flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-400">
+            <div className="pt-3 border-t border-[#EEEAF9] dark:border-white/10 flex flex-wrap items-center gap-4 text-xs text-slate-600 dark:text-slate-300">
               <span className="inline-flex items-center gap-1.5">
                 {episode.qcReport.passed ? (
                   <CheckCircle2 className="w-4 h-4 text-emerald-500" />
@@ -199,7 +198,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                 <span>{episode.qcReport.languageNaturalnessNote}</span>
               </span>
               {episode.audioProvider === 'browser-fallback' && (
-                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                <span className="text-amber-700 dark:text-amber-300 font-medium">
                   Using Browser Speech Synthesis Fallback — click "Generate Studio AI Audio" to synthesize Gemini WAV audio.
                 </span>
               )}
@@ -217,18 +216,19 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
               <h2 className="font-display font-semibold text-lg text-[#18122B] dark:text-white">
                 Synchronized Transcript
               </h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
+              <p className="text-xs text-slate-600 dark:text-slate-300">
                 Click any line to seek directly to that moment
               </p>
             </div>
 
             <button
               type="button"
+              aria-pressed={autoScroll}
               onClick={() => setAutoScroll((v) => !v)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap ${
                 autoScroll
-                  ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/40 text-[#6D28D9] dark:text-[#C4B5FD]'
-                  : 'border-[#E2DAF5] dark:border-white/10 text-slate-600 dark:text-slate-300'
+                  ? 'bg-[#8B5CF6]/10 border-[#8B5CF6]/40 text-[#5B21B6] dark:text-[#C4B5FD]'
+                  : 'border-[#E2DAF5] dark:border-white/10 text-slate-700 dark:text-slate-300'
               }`}
             >
               Auto-scroll: {autoScroll ? 'On' : 'Off'}
@@ -280,7 +280,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                         onSeekTo(turn.startTimeSec, true);
                       }
                     }}
-                    className={`group rounded-xl p-4 border cursor-pointer transition-all ${
+                    className={`group rounded-xl p-4 border cursor-pointer transition-colors ${
                       isActive
                         ? 'bg-[#F3EEFF] dark:bg-[#1B1838] border-[#8B5CF6] shadow-sm'
                         : 'bg-[#FCFBFF] dark:bg-white/[0.02] border-[#EEEAF9] dark:border-white/5 hover:border-[#C4B5FD] dark:hover:border-white/20'
@@ -291,29 +291,33 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                         <img
                           src={isRiya ? RIYA_AVATAR : ARJUN_AVATAR}
                           alt={turn.speaker}
+                          width={28}
+                          height={28}
+                          loading="lazy"
+                          decoding="async"
                           referrerPolicy="no-referrer"
                           className="w-7 h-7 rounded-full object-cover border border-white/20"
                         />
                         <span
                           className={`text-sm font-semibold ${
                             isRiya
-                              ? 'text-[#DB2777] dark:text-[#F472B6]'
-                              : 'text-[#0284C7] dark:text-[#22D3EE]'
+                              ? 'text-[#BE185D] dark:text-[#F472B6]'
+                              : 'text-[#0E7490] dark:text-[#22D3EE]'
                           }`}
                         >
                           {turn.speaker}
                         </span>
-                        <span className="text-xs text-slate-400">·</span>
-                        <span className="text-xs text-slate-500 dark:text-slate-400">
+                        <span className="text-xs text-slate-500 dark:text-slate-400" aria-hidden="true">·</span>
+                        <span className="text-xs text-slate-600 dark:text-slate-300">
                           {turn.emotionCue}
                         </span>
                       </div>
 
                       <div className="flex items-center gap-2">
-                        <span className="font-mono-tabular text-xs text-slate-500 dark:text-slate-400">
+                        <span className="font-mono-tabular text-xs text-slate-600 dark:text-slate-300">
                           {formatTime(turn.startTimeSec)}
                         </span>
-                        <span className="opacity-0 group-hover:opacity-100 text-[#8B5CF6] transition-opacity">
+                        <span className="opacity-0 group-hover:opacity-100 text-[#6D28D9] dark:text-[#C4B5FD] transition-opacity">
                           {isActive && isPlaying ? (
                             <Pause className="w-3.5 h-3.5" />
                           ) : (
@@ -333,10 +337,10 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
 
             {episode.conclusion && (
               <div className="mt-4 pt-4 border-t border-[#EEEAF9] dark:border-white/10">
-                <div className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">
+                <div className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1">
                   Episode Takeaway
                 </div>
-                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-300">
+                <p className="text-sm leading-relaxed text-slate-700 dark:text-slate-200">
                   {episode.conclusion}
                 </p>
               </div>
@@ -349,12 +353,12 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
           {/* Grounded Q&A */}
           <section className="rounded-2xl border border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#111526] flex flex-col overflow-hidden">
             <div className="px-5 py-4 border-b border-[#EEEAF9] dark:border-white/10 flex items-center gap-2.5">
-              <MessageSquare className="w-4 h-4 text-[#EC4899]" />
+              <MessageSquare className="w-4 h-4 text-[#BE185D] dark:text-[#F472B6]" />
               <div>
                 <h2 className="font-display font-semibold text-base text-[#18122B] dark:text-white">
                   Ask About This Episode
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   Answers grounded strictly in the generated episode and sources
                 </p>
               </div>
@@ -363,7 +367,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
             <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
               {(episode.chatHistory || []).length === 0 ? (
                 <div className="space-y-3">
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <p className="text-xs text-slate-600 dark:text-slate-300">
                     Try a quick question or ask anything Riya and Arjun discussed:
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -389,7 +393,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                         : 'bg-[#F8F7FC] dark:bg-white/5 text-slate-700 dark:text-slate-200 mr-4 border border-[#EEEAF9] dark:border-white/10'
                     }`}
                   >
-                    <div className="text-[11px] font-semibold mb-1 text-slate-500 dark:text-slate-400">
+                    <div className="text-[11px] font-semibold mb-1 text-slate-600 dark:text-slate-300">
                       {msg.role === 'user' ? 'You' : 'Cozyland Episode Guide'}
                     </div>
                     <p className="whitespace-pre-wrap">{msg.content}</p>
@@ -398,7 +402,7 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
               )}
 
               {chatError && (
-                <p className="text-xs text-rose-500 bg-rose-500/10 rounded-lg px-3 py-2">
+                <p className="text-xs text-rose-700 dark:text-rose-300 bg-rose-500/10 rounded-lg px-3 py-2">
                   {chatError}
                 </p>
               )}
@@ -415,13 +419,14 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
                 type="text"
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
+                aria-label="Ask Riya and Arjun about this episode"
                 placeholder="Ask Riya & Arjun about this episode..."
-                className="flex-1 px-3.5 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white focus:outline-none focus:border-[#8B5CF6]"
+                className="flex-1 px-3.5 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-[#8B5CF6]"
               />
               <button
                 type="submit"
                 disabled={chatLoading || !question.trim()}
-                className="inline-flex items-center justify-center p-2.5 rounded-xl bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white disabled:opacity-40 hover:opacity-95 transition-opacity"
+                className="inline-flex items-center justify-center p-2.5 rounded-xl bg-gradient-to-r from-[#6D28D9] to-[#1D4ED8] text-white disabled:opacity-40 hover:opacity-95 transition-opacity"
                 aria-label="Send question"
               >
                 <Send className="w-4 h-4" />
@@ -431,15 +436,15 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
 
           {/* Key Facts & Sources */}
           <section className="rounded-2xl border border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#111526] p-5 space-y-4">
-            <h3 className="font-display font-semibold text-base text-[#18122B] dark:text-white">
+            <h2 className="font-display font-semibold text-base text-[#18122B] dark:text-white">
               Episode Notes &amp; Sources
-            </h3>
+            </h2>
             {episode.plan.keyFacts.length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-[#8B5CF6] dark:text-[#C4B5FD] mb-1.5">
+                <div className="text-xs font-semibold text-[#5B21B6] dark:text-[#C4B5FD] mb-1.5">
                   Key Facts
                 </div>
-                <ul className="space-y-1.5 text-xs text-slate-600 dark:text-slate-300 list-disc pl-4">
+                <ul className="space-y-1.5 text-xs text-slate-700 dark:text-slate-300 list-disc pl-4">
                   {episode.plan.keyFacts.map((fact, idx) => (
                     <li key={idx}>{fact}</li>
                   ))}
@@ -449,22 +454,26 @@ export const TranscriptChatView: React.FC<TranscriptChatViewProps> = ({
 
             {episode.plan.groundingUrls.length > 0 && (
               <div>
-                <div className="text-xs font-semibold text-[#22D3EE] mb-1.5">
+                <div className="text-xs font-semibold text-[#0E7490] dark:text-[#22D3EE] mb-1.5">
                   Reference Sources
                 </div>
                 <div className="space-y-1.5">
-                  {episode.plan.groundingUrls.map((g, idx) => (
-                    <a
-                      key={idx}
-                      href={g.uri}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 text-xs text-slate-600 dark:text-slate-300 hover:text-[#8B5CF6] truncate"
-                    >
-                      <ExternalLink className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{g.title}</span>
-                    </a>
-                  ))}
+                  {episode.plan.groundingUrls.map((g, idx) => {
+                    const safeHref = safeExternalUrl(g.uri);
+                    if (!safeHref) return null;
+                    return (
+                      <a
+                        key={idx}
+                        href={safeHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-slate-700 dark:text-slate-300 hover:text-[#6D28D9] dark:hover:text-[#C4B5FD] truncate"
+                      >
+                        <ExternalLink className="w-3 h-3 shrink-0" />
+                        <span className="truncate">{g.title}</span>
+                      </a>
+                    );
+                  })}
                 </div>
               </div>
             )}

@@ -13,11 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { apiJson, streamSse } from './lib/api';
-import { AudioPlayerBar } from './components/AudioPlayerBar';
-import { LibraryView, SettingsView } from './components/LibrarySettingsViews';
 import { type LiveGenerationState, StudioCreateView } from './components/StudioCreateView';
-import { TranscriptChatView } from './components/TranscriptChatView';
-import { VoiceStudioView } from './components/VoiceStudioView';
 import type {
   Episode,
   HostVoiceConfig,
@@ -27,6 +23,21 @@ import type {
   VoiceProfile,
 } from './types/podcast';
 
+const AudioPlayerBar = lazy(() =>
+  import('./components/AudioPlayerBar').then((m) => ({ default: m.AudioPlayerBar }))
+);
+const TranscriptChatView = lazy(() =>
+  import('./components/TranscriptChatView').then((m) => ({ default: m.TranscriptChatView }))
+);
+const VoiceStudioView = lazy(() =>
+  import('./components/VoiceStudioView').then((m) => ({ default: m.VoiceStudioView }))
+);
+const LibraryView = lazy(() =>
+  import('./components/LibrarySettingsViews').then((m) => ({ default: m.LibraryView }))
+);
+const SettingsView = lazy(() =>
+  import('./components/LibrarySettingsViews').then((m) => ({ default: m.SettingsView }))
+);
 const Explainer3D = lazy(() =>
   import('./components/Explainer3D').then((m) => ({ default: m.Explainer3D }))
 );
@@ -122,6 +133,17 @@ export default function App() {
   const [liveState, setLiveState] = useState<LiveGenerationState>(INITIAL_LIVE_STATE);
   const [isRetryingAudio, setIsRetryingAudio] = useState(false);
   const generationAbortRef = useRef<AbortController | null>(null);
+  const profilesLoadedRef = useRef(false);
+
+  // Close mobile drawer on Escape
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMobileMenuOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [mobileMenuOpen]);
 
   // Sync theme to document root & localStorage
   useEffect(() => {
@@ -149,18 +171,14 @@ export default function App() {
     }
   }, [defaultLanguage, defaultDuration, defaultStyle, voiceConfig]);
 
-  // Initial data load
+  // Initial episodes load (voice profiles deferred until Voice Studio is opened)
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const [epRes, profRes] = await Promise.all([
-          apiJson<{ episodes: Episode[] }>('/api/episodes'),
-          apiJson<{ profiles: VoiceProfile[] }>('/api/voice/profiles'),
-        ]);
+        const epRes = await apiJson<{ episodes: Episode[] }>('/api/episodes');
         if (!active) return;
         setEpisodes(epRes.episodes || []);
-        setVoiceProfiles(profRes.profiles || []);
         if (epRes.episodes?.length > 0) {
           setCurrentEpisodeId(epRes.episodes[0].id);
         }
@@ -176,6 +194,18 @@ export default function App() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (activeTab !== 'voices' || profilesLoadedRef.current) return;
+    profilesLoadedRef.current = true;
+    apiJson<{ profiles: VoiceProfile[] }>('/api/voice/profiles')
+      .then((profRes) => {
+        setVoiceProfiles(profRes.profiles || []);
+      })
+      .catch(() => {
+        profilesLoadedRef.current = false;
+      });
+  }, [activeTab]);
 
   const currentEpisode = useMemo(
     () => episodes.find((e) => e.id === currentEpisodeId) || null,
@@ -416,28 +446,30 @@ export default function App() {
             onClick={() => setMobileMenuOpen((v) => !v)}
             className="lg:hidden p-2 rounded-lg text-slate-600 dark:text-slate-300 hover:bg-[#F3EEFF] dark:hover:bg-white/10"
             aria-label="Toggle navigation menu"
+            aria-expanded={mobileMenuOpen}
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
           <button
             type="button"
             onClick={() => setActiveTab('studio')}
-            className="font-display font-bold text-xl tracking-tight bg-gradient-to-r from-[#6D28D9] via-[#EC4899] to-[#22D3EE] bg-clip-text text-transparent whitespace-nowrap shrink-0"
+            className="font-display font-bold text-xl tracking-tight bg-gradient-to-r from-[#5B21B6] via-[#BE185D] to-[#0E7490] dark:from-[#C4B5FD] dark:via-[#F472B6] dark:to-[#22D3EE] bg-clip-text text-transparent whitespace-nowrap shrink-0"
           >
             Cozyland
           </button>
         </div>
 
         {/* Zone 2: Clean Single-Line Nav Links */}
-        <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-300">
+        <nav aria-label="Primary" className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-700 dark:text-slate-300">
           {navItems.slice(0, 5).map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => setActiveTab(item.id)}
+              aria-current={activeTab === item.id ? 'page' : undefined}
               className={`whitespace-nowrap shrink-0 py-1 border-b-2 transition-colors ${
                 activeTab === item.id
-                  ? 'border-[#8B5CF6] text-[#6D28D9] dark:text-white font-semibold'
+                  ? 'border-[#8B5CF6] text-[#5B21B6] dark:text-white font-semibold'
                   : 'border-transparent hover:text-[#18122B] dark:hover:text-white'
               }`}
             >
@@ -460,7 +492,7 @@ export default function App() {
           <button
             type="button"
             onClick={() => setActiveTab('studio')}
-            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#3B82F6] text-white hover:opacity-95 transition-opacity whitespace-nowrap shrink-0"
+            className="hidden sm:inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#6D28D9] to-[#1D4ED8] text-white hover:opacity-95 transition-opacity whitespace-nowrap shrink-0"
           >
             <PlusCircle className="w-3.5 h-3.5" />
             Create Episode
@@ -471,7 +503,7 @@ export default function App() {
       {/* Main Body: Responsive Sidebar + Content */}
       <div className="flex-1 flex min-w-0">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-60 shrink-0 flex-col border-r border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#0D1020] p-4 justify-between">
+        <aside aria-label="Workspace navigation" className="hidden lg:flex w-60 shrink-0 flex-col border-r border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#0D1020] p-4 justify-between">
           <div className="space-y-1">
             {navItems.map((item) => {
               const active = activeTab === item.id;
@@ -480,13 +512,14 @@ export default function App() {
                   key={item.id}
                   type="button"
                   onClick={() => setActiveTab(item.id)}
+                  aria-current={active ? 'page' : undefined}
                   className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-colors whitespace-nowrap ${
                     active
-                      ? 'bg-[#F3EEFF] dark:bg-[#1E193E] text-[#6D28D9] dark:text-white font-semibold'
-                      : 'text-slate-600 dark:text-slate-400 hover:bg-[#F8F7FC] dark:hover:bg-white/5 hover:text-[#18122B] dark:hover:text-white'
+                      ? 'bg-[#F3EEFF] dark:bg-[#1E193E] text-[#5B21B6] dark:text-white font-semibold'
+                      : 'text-slate-700 dark:text-slate-300 hover:bg-[#F8F7FC] dark:hover:bg-white/5 hover:text-[#18122B] dark:hover:text-white'
                   }`}
                 >
-                  <span className={active ? 'text-[#8B5CF6] dark:text-[#22D3EE]' : ''}>
+                  <span className={active ? 'text-[#6D28D9] dark:text-[#22D3EE]' : ''}>
                     {item.icon}
                   </span>
                   <span>{item.label}</span>
@@ -497,13 +530,13 @@ export default function App() {
 
           {currentEpisode && (
             <div className="rounded-xl border border-[#E5DFF5] dark:border-white/10 bg-[#FAF8FF] dark:bg-white/[0.03] p-3.5 space-y-1.5">
-              <div className="text-[11px] font-medium text-[#8B5CF6] dark:text-[#C4B5FD]">
+              <div className="text-[11px] font-medium text-[#5B21B6] dark:text-[#C4B5FD]">
                 Active Episode
               </div>
               <div className="font-display font-semibold text-xs text-[#18122B] dark:text-white line-clamp-2">
                 {currentEpisode.plan.title}
               </div>
-              <div className="text-[11px] text-slate-500 dark:text-slate-400">
+              <div className="text-[11px] text-slate-600 dark:text-slate-300">
                 {currentEpisode.plan.language} · {currentEpisode.dialogue.length} turns
               </div>
             </div>
@@ -517,22 +550,23 @@ export default function App() {
               className="fixed inset-0 bg-black/50"
               onClick={() => setMobileMenuOpen(false)}
             />
-            <nav className="relative z-50 w-64 bg-white dark:bg-[#0D1020] border-r border-[#E5DFF5] dark:border-white/10 p-4 space-y-1.5">
-              <div className="font-display font-bold text-lg text-[#6D28D9] dark:text-white px-3 py-2">
+            <nav aria-label="Mobile workspace" className="relative z-50 w-64 bg-white dark:bg-[#0D1020] border-r border-[#E5DFF5] dark:border-white/10 p-4 space-y-1.5">
+              <div className="font-display font-bold text-lg text-[#5B21B6] dark:text-white px-3 py-2">
                 Cozyland Studio
               </div>
               {navItems.map((item) => (
                 <button
                   key={item.id}
                   type="button"
+                  aria-current={activeTab === item.id ? 'page' : undefined}
                   onClick={() => {
                     setActiveTab(item.id);
                     setMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-xl text-sm font-medium ${
                     activeTab === item.id
-                      ? 'bg-[#F3EEFF] dark:bg-[#1E193E] text-[#6D28D9] dark:text-white'
-                      : 'text-slate-600 dark:text-slate-300'
+                      ? 'bg-[#F3EEFF] dark:bg-[#1E193E] text-[#5B21B6] dark:text-white'
+                      : 'text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   {item.icon}
@@ -551,40 +585,41 @@ export default function App() {
             </div>
           )}
 
-          {initialLoading ? (
-            <div className="space-y-6 animate-pulse">
-              <div className="h-52 rounded-2xl bg-[#EAE4F7] dark:bg-white/5" />
-              <div className="h-64 rounded-2xl bg-[#EAE4F7] dark:bg-white/5" />
-            </div>
+          {activeTab === 'studio' && (
+            <StudioCreateView
+              defaultLanguage={defaultLanguage}
+              defaultDuration={defaultDuration}
+              defaultStyle={defaultStyle}
+              liveState={liveState}
+              recentEpisodes={episodes}
+              episodesLoading={initialLoading}
+              onGenerate={handleGenerate}
+              onCancelGeneration={handleCancelGeneration}
+              onRetryAudio={handleRetryAudio}
+              onOpenEpisode={handleOpenEpisode}
+            />
+          )}
+
+          {initialLoading && activeTab !== 'studio' ? (
+            <WorkspaceSkeleton />
           ) : (
             <>
-              {activeTab === 'studio' && (
-                <StudioCreateView
-                  defaultLanguage={defaultLanguage}
-                  defaultDuration={defaultDuration}
-                  defaultStyle={defaultStyle}
-                  liveState={liveState}
-                  recentEpisodes={episodes}
-                  onGenerate={handleGenerate}
-                  onCancelGeneration={handleCancelGeneration}
-                  onRetryAudio={handleRetryAudio}
-                  onOpenEpisode={handleOpenEpisode}
-                />
-              )}
 
               {activeTab === 'transcript' && (
                 currentEpisode ? (
-                  <TranscriptChatView
-                    episode={currentEpisode}
-                    currentTimeSec={currentTimeSec}
-                    isPlaying={isPlaying}
-                    onSeekTo={handleSeekTo}
-                    onPlayingChange={setIsPlaying}
-                    onEpisodeUpdate={upsertEpisode}
-                    onRetryAudio={handleRetryAudio}
-                    isRetryingAudio={isRetryingAudio}
-                    onOpen3D={() => setActiveTab('3d')}
-                  />
+                  <Suspense fallback={<WorkspaceSkeleton />}>
+                    <TranscriptChatView
+                      episode={currentEpisode}
+                      currentTimeSec={currentTimeSec}
+                      isPlaying={isPlaying}
+                      onSeekTo={handleSeekTo}
+                      onPlayingChange={setIsPlaying}
+                      onEpisodeUpdate={upsertEpisode}
+                      onRetryAudio={handleRetryAudio}
+                      isRetryingAudio={isRetryingAudio}
+                      onOpen3D={() => setActiveTab('3d')}
+                    />
+                  </Suspense>
                 ) : (
                   <EmptyEpisodeNotice onGoStudio={() => setActiveTab('studio')} />
                 )
@@ -636,42 +671,48 @@ export default function App() {
               )}
 
               {activeTab === 'voices' && (
-                <VoiceStudioView
-                  voiceConfig={voiceConfig}
-                  onVoiceConfigChange={setVoiceConfig}
-                  profiles={voiceProfiles}
-                  onProfilesChange={setVoiceProfiles}
-                  defaultLanguage={defaultLanguage}
-                />
+                <Suspense fallback={<WorkspaceSkeleton />}>
+                  <VoiceStudioView
+                    voiceConfig={voiceConfig}
+                    onVoiceConfigChange={setVoiceConfig}
+                    profiles={voiceProfiles}
+                    onProfilesChange={setVoiceProfiles}
+                    defaultLanguage={defaultLanguage}
+                  />
+                </Suspense>
               )}
 
               {activeTab === 'library' && (
-                <LibraryView
-                  episodes={episodes}
-                  onOpenEpisode={handleOpenEpisode}
-                  onEpisodeUpdated={upsertEpisode}
-                  onEpisodeDeleted={(id) => {
-                    setEpisodes((prev) => prev.filter((e) => e.id !== id));
-                    if (currentEpisodeId === id) {
-                      setIsPlaying(false);
-                      setCurrentEpisodeId(null);
-                    }
-                  }}
-                  onGoCreate={() => setActiveTab('studio')}
-                />
+                <Suspense fallback={<WorkspaceSkeleton />}>
+                  <LibraryView
+                    episodes={episodes}
+                    onOpenEpisode={handleOpenEpisode}
+                    onEpisodeUpdated={upsertEpisode}
+                    onEpisodeDeleted={(id) => {
+                      setEpisodes((prev) => prev.filter((e) => e.id !== id));
+                      if (currentEpisodeId === id) {
+                        setIsPlaying(false);
+                        setCurrentEpisodeId(null);
+                      }
+                    }}
+                    onGoCreate={() => setActiveTab('studio')}
+                  />
+                </Suspense>
               )}
 
               {activeTab === 'settings' && (
-                <SettingsView
-                  theme={theme}
-                  onThemeChange={setTheme}
-                  defaultLanguage={defaultLanguage}
-                  onDefaultLanguageChange={setDefaultLanguage}
-                  defaultDuration={defaultDuration}
-                  onDefaultDurationChange={setDefaultDuration}
-                  defaultStyle={defaultStyle}
-                  onDefaultStyleChange={setDefaultStyle}
-                />
+                <Suspense fallback={<WorkspaceSkeleton />}>
+                  <SettingsView
+                    theme={theme}
+                    onThemeChange={setTheme}
+                    defaultLanguage={defaultLanguage}
+                    onDefaultLanguageChange={setDefaultLanguage}
+                    defaultDuration={defaultDuration}
+                    onDefaultDurationChange={setDefaultDuration}
+                    defaultStyle={defaultStyle}
+                    onDefaultStyleChange={setDefaultStyle}
+                  />
+                </Suspense>
               )}
             </>
           )}
@@ -680,34 +721,43 @@ export default function App() {
 
       {/* Persistent Bottom Audio Player */}
       {currentEpisode && (
-        <AudioPlayerBar
-          episode={currentEpisode}
-          currentTimeSec={currentTimeSec}
-          isPlaying={isPlaying}
-          seekTargetSec={seekTargetSec}
-          onClearSeekTarget={() => setSeekTargetSec(null)}
-          onTimeUpdate={setCurrentTimeSec}
-          onPlayingChange={setIsPlaying}
-          onSeekTo={handleSeekTo}
-          onOpenTranscript={() => setActiveTab('transcript')}
-        />
+        <Suspense fallback={null}>
+          <AudioPlayerBar
+            episode={currentEpisode}
+            currentTimeSec={currentTimeSec}
+            isPlaying={isPlaying}
+            seekTargetSec={seekTargetSec}
+            onClearSeekTarget={() => setSeekTargetSec(null)}
+            onTimeUpdate={setCurrentTimeSec}
+            onPlayingChange={setIsPlaying}
+            onSeekTo={handleSeekTo}
+            onOpenTranscript={() => setActiveTab('transcript')}
+          />
+        </Suspense>
       )}
     </div>
   );
 }
 
+const WorkspaceSkeleton: React.FC = () => (
+  <div className="space-y-6 animate-pulse" aria-busy="true" aria-label="Loading view">
+    <div className="h-44 rounded-2xl bg-[#EAE4F7] dark:bg-white/5" />
+    <div className="h-64 rounded-2xl bg-[#EAE4F7] dark:bg-white/5" />
+  </div>
+);
+
 const EmptyEpisodeNotice: React.FC<{ onGoStudio: () => void }> = ({ onGoStudio }) => (
   <div className="rounded-2xl border border-dashed border-[#D8CFF2] dark:border-white/15 bg-white dark:bg-[#111526] p-12 text-center space-y-3">
-    <h2 className="font-display font-bold text-xl text-[#18122B] dark:text-white">
+    <h1 className="font-display font-bold text-xl text-[#18122B] dark:text-white">
       No episode selected yet
-    </h2>
-    <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto">
+    </h1>
+    <p className="text-sm text-slate-600 dark:text-slate-300 max-w-md mx-auto">
       Generate a podcast from a single line in the Studio or pick a saved episode from your Library.
     </p>
     <button
       type="button"
       onClick={onGoStudio}
-      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white"
+      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white hover:opacity-95 transition-opacity"
     >
       <Sparkles className="w-4 h-4" />
       Go to Studio

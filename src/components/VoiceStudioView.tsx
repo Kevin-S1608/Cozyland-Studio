@@ -23,9 +23,8 @@ import {
   type VoiceDeliveryStyle,
   type VoiceProfile,
 } from '../types/podcast';
-
-const RIYA_AVATAR = '/src/assets/images/host_riya_avatar_1795597436232.jpg';
-const ARJUN_AVATAR = '/src/assets/images/host_arjun_avatar_1795597437586.jpg';
+import RIYA_AVATAR from '../assets/images/host_riya_avatar_160.webp';
+import ARJUN_AVATAR from '../assets/images/host_arjun_avatar_160.webp';
 
 const EXPRESSIVENESS_OPTIONS: ExpressivenessLevel[] = ['Calm', 'Balanced', 'Expressive', 'Dramatic'];
 const ENERGY_OPTIONS: EnergyLevel[] = ['Relaxed', 'Warm', 'Upbeat', 'High-Energy'];
@@ -249,7 +248,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <label htmlFor="preview-lang" className="text-xs font-medium text-slate-500 dark:text-slate-400">
+          <label htmlFor="preview-lang" className="text-xs font-medium text-slate-600 dark:text-slate-300">
             Preview language
           </label>
           <select
@@ -288,6 +287,10 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   <img
                     src={isRiya ? RIYA_AVATAR : ARJUN_AVATAR}
                     alt={`${host} studio portrait`}
+                    width={56}
+                    height={56}
+                    loading="lazy"
+                    decoding="async"
                     referrerPolicy="no-referrer"
                     className="w-14 h-14 rounded-2xl object-cover border border-[#E5DFF5] dark:border-white/15"
                   />
@@ -295,7 +298,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                     <h2 className="font-display font-bold text-lg text-[#18122B] dark:text-white">
                       {host}
                     </h2>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                    <p className="text-xs text-slate-600 dark:text-slate-300">
                       {isRiya
                         ? 'Lead explainer · Warm, expressive & clear'
                         : 'Curious co-host · Sharp questions & examples'}
@@ -308,8 +311,8 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   onClick={() => handlePreviewVoice(host)}
                   className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-opacity whitespace-nowrap ${
                     isRiya
-                      ? 'bg-gradient-to-r from-[#8B5CF6] to-[#EC4899]'
-                      : 'bg-gradient-to-r from-[#3B82F6] to-[#22D3EE]'
+                      ? 'bg-gradient-to-r from-[#6D28D9] to-[#BE185D]'
+                      : 'bg-gradient-to-r from-[#0369A1] to-[#0E7490]'
                   }`}
                 >
                   {previewingHost === host ? (
@@ -326,9 +329,9 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
 
               {/* Studio Voice Selector */}
               <div className="space-y-2">
-                <label className="text-xs font-semibold text-slate-600 dark:text-slate-300 block">
+                <span className="text-xs font-semibold text-slate-700 dark:text-slate-200 block">
                   Gemini Studio Voice
-                </label>
+                </span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {GEMINI_VOICE_CATALOG.map((v) => {
                     const active = cfg.voiceName === v.name;
@@ -337,7 +340,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                         key={v.name}
                         type="button"
                         onClick={() => updateHost(host, { voiceName: v.name })}
-                        className={`text-left p-3 rounded-xl border transition-all ${
+                        className={`text-left p-3 rounded-xl border transition-colors ${
                           active
                             ? 'border-[#8B5CF6] bg-[#F3EEFF] dark:bg-[#1E193E]'
                             : 'border-[#EEEAF9] dark:border-white/10 hover:border-[#C4B5FD] dark:hover:border-white/25'
@@ -345,11 +348,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                       >
                         <div className="flex items-center justify-between text-sm font-semibold text-[#18122B] dark:text-white">
                           <span>{v.label}</span>
-                          <span className="text-[11px] font-normal text-slate-500 dark:text-slate-400">
+                          <span className="text-[11px] font-normal text-slate-600 dark:text-slate-300">
                             {v.register}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
                           {v.timbre}
                         </p>
                       </button>
@@ -362,14 +365,15 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-[#EEEAF9] dark:border-white/10">
                 <div>
                   <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-medium text-slate-600 dark:text-slate-300">
+                    <label htmlFor={`speed-${host}`} className="font-medium text-slate-700 dark:text-slate-200">
                       Speaking Speed
-                    </span>
-                    <span className="font-mono-tabular font-semibold text-[#8B5CF6]">
+                    </label>
+                    <span className="font-mono-tabular font-semibold text-[#5B21B6] dark:text-[#C4B5FD]">
                       {cfg.speed.toFixed(2)}x
                     </span>
                   </div>
                   <input
+                    id={`speed-${host}`}
                     type="range"
                     min={0.85}
                     max={1.25}
@@ -381,10 +385,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-300 block mb-1.5">
+                  <label htmlFor={`delivery-${host}`} className="text-xs font-medium text-slate-700 dark:text-slate-200 block mb-1.5">
                     Delivery Style
                   </label>
                   <select
+                    id={`delivery-${host}`}
                     value={cfg.deliveryStyle}
                     onChange={(e) =>
                       updateHost(host, { deliveryStyle: e.target.value as VoiceDeliveryStyle })
@@ -400,10 +405,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-300 block mb-1.5">
+                  <label htmlFor={`expressiveness-${host}`} className="text-xs font-medium text-slate-700 dark:text-slate-200 block mb-1.5">
                     Expressiveness
                   </label>
                   <select
+                    id={`expressiveness-${host}`}
                     value={cfg.expressiveness}
                     onChange={(e) =>
                       updateHost(host, { expressiveness: e.target.value as ExpressivenessLevel })
@@ -419,10 +425,11 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="text-xs font-medium text-slate-600 dark:text-slate-300 block mb-1.5">
+                  <label htmlFor={`energy-${host}`} className="text-xs font-medium text-slate-700 dark:text-slate-200 block mb-1.5">
                     Energy
                   </label>
                   <select
+                    id={`energy-${host}`}
                     value={cfg.energy}
                     onChange={(e) => updateHost(host, { energy: e.target.value as EnergyLevel })}
                     className="w-full px-3 py-2 rounded-xl text-xs bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
@@ -456,12 +463,14 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               type="text"
               value={presetName}
               onChange={(e) => setPresetName(e.target.value)}
+              aria-label="Preset name"
               placeholder="Preset name (e.g. Tamil Storytelling)"
-              className="flex-1 min-w-[180px] px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
+              className="flex-1 min-w-[180px] px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
             />
             <select
               value={presetHost}
               onChange={(e) => setPresetHost(e.target.value as 'Riya' | 'Arjun')}
+              aria-label="Preset host"
               className="px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
             >
               <option value="Riya">Save Riya</option>
@@ -470,7 +479,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             <button
               type="submit"
               disabled={savingPreset || !presetName.trim()}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[#8B5CF6] text-white hover:bg-[#7C3AED] disabled:opacity-40 whitespace-nowrap"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-semibold bg-[#6D28D9] text-white hover:bg-[#5B21B6] disabled:opacity-40 whitespace-nowrap"
             >
               <Save className="w-4 h-4" />
               Save
@@ -478,7 +487,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           </form>
 
           {presetMessage && (
-            <p className="text-xs text-[#6D28D9] dark:text-[#C4B5FD]">{presetMessage}</p>
+            <p className="text-xs text-[#5B21B6] dark:text-[#C4B5FD]">{presetMessage}</p>
           )}
 
           <div className="space-y-2.5 max-h-72 overflow-y-auto">
@@ -491,12 +500,12 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   <div className="font-medium text-sm text-[#18122B] dark:text-white truncate">
                     {prof.name}
                   </div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-xs text-slate-600 dark:text-slate-300">
                     {prof.assignedHost} · {prof.config.voiceName} · {prof.config.speed.toFixed(2)}x ·{' '}
                     {prof.config.deliveryStyle}
                   </div>
                   {prof.calibrationSummary && (
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">
+                    <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-1 line-clamp-2">
                       {prof.calibrationSummary}
                     </p>
                   )}
@@ -506,15 +515,16 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   <button
                     type="button"
                     onClick={() => handlePreviewVoice(prof.assignedHost, prof.config)}
-                    className="p-2 rounded-lg border border-[#E5DFF5] dark:border-white/10 hover:border-[#22D3EE] text-slate-600 dark:text-slate-300"
+                    className="p-2 rounded-lg border border-[#E5DFF5] dark:border-white/10 hover:border-[#22D3EE] text-slate-700 dark:text-slate-200"
+                    aria-label={`Preview preset ${prof.name}`}
                     title="Preview preset"
                   >
-                    <Volume2 className="w-3.5 h-3.5 text-[#22D3EE]" />
+                    <Volume2 className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#22D3EE]" />
                   </button>
                   <button
                     type="button"
                     onClick={() => updateHost(prof.assignedHost, prof.config)}
-                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#8B5CF6]/10 text-[#6D28D9] dark:text-[#C4B5FD] hover:bg-[#8B5CF6]/20 whitespace-nowrap"
+                    className="px-2.5 py-1.5 rounded-lg text-xs font-medium bg-[#8B5CF6]/10 text-[#5B21B6] dark:text-[#C4B5FD] hover:bg-[#8B5CF6]/20 whitespace-nowrap"
                   >
                     Apply
                   </button>
@@ -530,8 +540,8 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setConfirmDeleteId(prof.id)}
-                      className="p-2 rounded-lg text-slate-400 hover:text-rose-500"
-                      aria-label="Delete preset"
+                      className="p-2 rounded-lg text-slate-500 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
+                      aria-label={`Delete preset ${prof.name}`}
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -545,14 +555,14 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
         {/* Authorized Custom Voice Sample Calibration */}
         <section className="lg:col-span-6 rounded-2xl border border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#111526] p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <Mic className="w-4 h-4 text-[#EC4899]" />
+            <Mic className="w-4 h-4 text-[#BE185D] dark:text-[#F472B6]" />
             <h2 className="font-display font-semibold text-base text-[#18122B] dark:text-white">
               Authorized Voice Sample Calibration
             </h2>
           </div>
 
-          <div className="rounded-xl bg-[#FAF8FF] dark:bg-white/5 border border-[#E5DFF5] dark:border-white/10 p-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 text-[#FB923C] shrink-0 mt-0.5" />
+          <div className="rounded-xl bg-[#FAF8FF] dark:bg-white/5 border border-[#E5DFF5] dark:border-white/10 p-3 text-xs text-slate-700 dark:text-slate-300 leading-relaxed flex items-start gap-2.5">
+            <AlertTriangle className="w-4 h-4 text-[#C2410C] dark:text-[#FB923C] shrink-0 mt-0.5" />
             <span>
               Gemini TTS generates new speech using verified studio voices and does not perform raw-audio voice cloning. Uploading an authorized sample transcribes and analyzes vocal cadence to calibrate a matched Gemini studio profile for generating new episode speech.
             </span>
@@ -561,23 +571,25 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
           <form onSubmit={handleCalibrateImport} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-xs font-medium text-slate-600 dark:text-slate-300 block mb-1">
+                <label htmlFor="import-profile-name" className="text-xs font-medium text-slate-700 dark:text-slate-200 block mb-1">
                   Profile Name
                 </label>
                 <input
+                  id="import-profile-name"
                   type="text"
                   value={importProfileName}
                   onChange={(e) => setImportProfileName(e.target.value)}
                   placeholder="My Studio Voice"
-                  className="w-full px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
+                  className="w-full px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400"
                 />
               </div>
 
               <div>
-                <label className="text-xs font-medium text-slate-600 dark:text-slate-300 block mb-1">
+                <label htmlFor="import-assign-host" className="text-xs font-medium text-slate-700 dark:text-slate-200 block mb-1">
                   Assign to Host
                 </label>
                 <select
+                  id="import-assign-host"
                   value={importHost}
                   onChange={(e) => setImportHost(e.target.value as 'Riya' | 'Arjun')}
                   className="w-full px-3 py-2 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E5DFF5] dark:border-white/10 text-[#18122B] dark:text-white"
@@ -588,13 +600,13 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
               </div>
             </div>
 
-            <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#C4B5FD] dark:border-white/20 bg-[#FAF8FF] dark:bg-white/[0.02] p-4 cursor-pointer hover:border-[#8B5CF6] transition-colors">
-              <Upload className="w-5 h-5 text-[#8B5CF6] mb-1.5" />
+            <label className="flex flex-col items-center justify-center rounded-xl border border-dashed border-[#C4B5FD] dark:border-white/20 bg-[#FAF8FF] dark:bg-white/[0.02] p-4 cursor-pointer hover:border-[#8B5CF6] focus-within:ring-2 focus-within:ring-[#0E7490] dark:focus-within:ring-[#22D3EE] transition-colors">
+              <Upload className="w-5 h-5 text-[#6D28D9] dark:text-[#C4B5FD] mb-1.5" />
               <span className="text-xs font-medium text-[#18122B] dark:text-white">
                 {selectedFile ? selectedFile.name : 'Choose WAV, MP3, M4A, or FLAC sample (max 10 MB)'}
               </span>
               {selectedFile && (
-                <span className="text-[11px] font-mono-tabular text-slate-500 mt-0.5">
+                <span className="text-[11px] font-mono-tabular text-slate-600 dark:text-slate-300 mt-0.5">
                   {(selectedFile.size / 1024).toFixed(0)} KB · {sampleDurationSec}s duration
                 </span>
               )}
@@ -602,20 +614,20 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                 type="file"
                 accept=".wav,.mp3,.m4a,.flac,audio/*"
                 onChange={handleFileChange}
-                className="hidden"
+                className="sr-only"
               />
             </label>
 
             {sampleObjectUrl && (
               <div className="space-y-1">
-                <div className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
+                <div className="text-[11px] font-medium text-slate-600 dark:text-slate-300">
                   Uploaded Reference Sample Preview
                 </div>
                 <audio controls src={sampleObjectUrl} className="w-full h-9" />
               </div>
             )}
 
-            <label className="flex items-start gap-2.5 text-xs text-slate-600 dark:text-slate-300 cursor-pointer">
+            <label className="flex items-start gap-2.5 text-xs text-slate-700 dark:text-slate-200 cursor-pointer">
               <input
                 type="checkbox"
                 checked={consentConfirmed}
@@ -628,7 +640,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             </label>
 
             {importError && (
-              <p className="text-xs text-rose-500 bg-rose-500/10 rounded-lg px-3 py-2">{importError}</p>
+              <p className="text-xs text-rose-700 dark:text-rose-300 bg-rose-500/10 rounded-lg px-3 py-2">{importError}</p>
             )}
 
             {importSuccess && (
@@ -637,14 +649,14 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
                   <ShieldCheck className="w-4 h-4" />
                   Calibrated Profile "{importSuccess.profile.name}" Ready ({importSuccess.profile.config.voiceName})
                 </div>
-                <p className="text-slate-600 dark:text-slate-300">
+                <p className="text-slate-700 dark:text-slate-200">
                   Detected transcript: &ldquo;{importSuccess.transcript}&rdquo;
                 </p>
-                <p className="text-slate-500 dark:text-slate-400">{importSuccess.note}</p>
+                <p className="text-slate-600 dark:text-slate-300">{importSuccess.note}</p>
                 <button
                   type="button"
                   onClick={() => handlePreviewVoice(importHost, importSuccess.profile.config)}
-                  className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg bg-emerald-600 text-white font-medium"
+                  className="inline-flex items-center gap-1.5 mt-1 px-3 py-1.5 rounded-lg bg-[#047857] text-white font-medium"
                 >
                   <Check className="w-3.5 h-3.5" />
                   Preview Calibrated Speech
@@ -655,7 +667,7 @@ export const VoiceStudioView: React.FC<VoiceStudioViewProps> = ({
             <button
               type="submit"
               disabled={importing || !selectedFile || !consentConfirmed}
-              className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#EC4899] to-[#FB7185] text-white hover:opacity-95 disabled:opacity-40 transition-opacity"
+              className="w-full py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#BE185D] to-[#BE123C] text-white hover:opacity-95 disabled:opacity-40 transition-opacity"
             >
               {importing ? 'Analyzing Voice Sample...' : 'Calibrate Studio Voice Profile'}
             </button>

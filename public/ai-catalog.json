@@ -1,0 +1,49 @@
+{
+  "specVersion": "1.0",
+  "host": {
+    "displayName": "Cozyland Studio",
+    "identifier": "did:web:cozyland.ai.studio",
+    "documentationUrl": "https://cozyland.ai.studio/llms.txt",
+    "logoUrl": "https://cozyland.ai.studio/favicon.ico"
+  },
+  "entries": [
+    {
+      "identifier": "urn:air:cozyland.ai.studio:podcast-studio:web",
+      "displayName": "Cozyland AI Podcast & 3D Explainer Studio",
+      "type": "text/html",
+      "url": "https://cozyland.ai.studio/",
+      "description": "Interactive studio that transforms any topic, question, or URL into a two-host conversational podcast in 14 languages with synchronized transcripts, cover art, and a Three.js 3D explainer.",
+      "tags": [
+        "podcast",
+        "text-to-speech",
+        "multilingual",
+        "3d-visualization",
+        "education"
+      ],
+      "capabilities": [
+        "PodcastGeneration",
+        "MultilingualTTS",
+        "Interactive3DExplainer",
+        "GroundedEpisodeChat",
+        "VoiceCalibration"
+      ],
+      "representativeQueries": [
+        "Generate a two-host AI podcast from a single topic line",
+        "Explore a podcast topic as an interactive 3D concept graph"
+      ],
+      "version": "1.0.0"
+    },
+    {
+      "identifier": "urn:air:cozyland.ai.studio:documentation:llms",
+      "displayName": "Cozyland Studio LLM Documentation Index",
+      "type": "text/markdown",
+      "url": "https://cozyland.ai.studio/llms.txt",
+      "description": "Curated Markdown overview and links to public Cozyland Studio resources for language models and AI agents.",
+      "tags": [
+        "documentation",
+        "llms-txt"
+      ],
+      "version": "1.0.0"
+    }
+  ]
+}

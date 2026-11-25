@@ -12,7 +12,6 @@ import {
   Sparkles,
   Square,
 } from 'lucide-react';
-import { motion } from 'motion/react';
 import {
   type DialogueTurn,
   type Episode,
@@ -27,12 +26,14 @@ import {
   type QualityControlReport,
   SUPPORTED_LANGUAGES,
 } from '../types/podcast';
-import { formatTime } from './AudioPlayerBar';
+import { formatTime } from '../lib/format';
 import { CoverArtwork } from './CoverArtwork';
+import STUDIO_BACKDROP_WEBP_640 from '../assets/images/studio_hero_backdrop_640.webp';
+import STUDIO_BACKDROP_WEBP_1280 from '../assets/images/studio_hero_backdrop_1280.webp';
+import RIYA_AVATAR from '../assets/images/host_riya_avatar_160.webp';
+import ARJUN_AVATAR from '../assets/images/host_arjun_avatar_160.webp';
 
-const STUDIO_BACKDROP = '/src/assets/images/studio_hero_backdrop_1795597437143.jpg';
-const RIYA_AVATAR = '/src/assets/images/host_riya_avatar_1795597436232.jpg';
-const ARJUN_AVATAR = '/src/assets/images/host_arjun_avatar_1795597437586.jpg';
+const STUDIO_BACKDROP_FALLBACK = '/src/assets/images/studio_hero_backdrop_1795597437143.jpg';
 
 const QUICK_TOPICS = [
   'How does the human brain work?',
@@ -73,6 +74,7 @@ interface StudioCreateViewProps {
   defaultStyle: PodcastStyle;
   liveState: LiveGenerationState;
   recentEpisodes: Episode[];
+  episodesLoading?: boolean;
   onGenerate: (params: {
     topicInput: string;
     referenceUrl: string;
@@ -91,6 +93,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
   defaultStyle,
   liveState,
   recentEpisodes,
+  episodesLoading = false,
   onGenerate,
   onCancelGeneration,
   onRetryAudio,
@@ -121,14 +124,25 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
   return (
     <div className="space-y-8">
       {/* Studio Welcome Banner */}
-      <section className="relative rounded-2xl overflow-hidden border border-[#E5DFF5] dark:border-white/10 min-h-[210px] flex items-end">
-        <img
-          src={STUDIO_BACKDROP}
-          alt="Cozyland podcast studio interior"
-          referrerPolicy="no-referrer"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#090B14]/92 via-[#0F1328]/82 to-[#6D28D9]/45" />
+      <section className="relative rounded-2xl overflow-hidden border border-[#E5DFF5] dark:border-white/10 min-h-[210px] flex items-end bg-[#101D2C]">
+        <picture>
+          <source
+            type="image/webp"
+            srcSet={`${STUDIO_BACKDROP_WEBP_640} 640w, ${STUDIO_BACKDROP_WEBP_1280} 1280w`}
+            sizes="(max-width: 768px) 100vw, 1280px"
+          />
+          <img
+            src={STUDIO_BACKDROP_FALLBACK}
+            alt="Cozyland podcast studio interior"
+            width={1280}
+            height={714}
+            fetchPriority="high"
+            decoding="async"
+            referrerPolicy="no-referrer"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </picture>
+        <div className="absolute inset-0 bg-gradient-to-r from-[#090B14] via-[#0F1328]/90 to-[#4C1D95]/65" />
 
         <div className="relative z-10 w-full p-6 sm:p-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
           <div className="max-w-2xl space-y-2">
@@ -144,10 +158,13 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
           </div>
 
           <div className="flex items-center gap-4 shrink-0">
-            <div className="flex items-center gap-2.5 bg-[#090B14]/75 border border-white/15 rounded-xl px-3.5 py-2">
+            <div className="flex items-center gap-2.5 bg-[#090B14]/85 border border-white/15 rounded-xl px-3.5 py-2">
               <img
                 src={RIYA_AVATAR}
                 alt="Riya"
+                width={36}
+                height={36}
+                decoding="async"
                 referrerPolicy="no-referrer"
                 className="w-9 h-9 rounded-full object-cover"
               />
@@ -156,10 +173,13 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                 <div className="text-[11px] text-[#F472B6]">Explainer</div>
               </div>
             </div>
-            <div className="flex items-center gap-2.5 bg-[#090B14]/75 border border-white/15 rounded-xl px-3.5 py-2">
+            <div className="flex items-center gap-2.5 bg-[#090B14]/85 border border-white/15 rounded-xl px-3.5 py-2">
               <img
                 src={ARJUN_AVATAR}
                 alt="Arjun"
+                width={36}
+                height={36}
+                decoding="async"
                 referrerPolicy="no-referrer"
                 className="w-9 h-9 rounded-full object-cover"
               />
@@ -183,7 +203,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
               >
                 What should Riya &amp; Arjun explore today?
               </label>
-              <span className="text-xs text-slate-500 dark:text-slate-400">
+              <span className="text-xs text-slate-600 dark:text-slate-300">
                 Single word, question, pasted text, or website URL
               </span>
             </div>
@@ -194,18 +214,18 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
               value={topicInput}
               onChange={(e) => setTopicInput(e.target.value)}
               placeholder="e.g., How does the human brain store memories? — or paste a paragraph or URL"
-              className="w-full rounded-xl p-4 text-base bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E2DAF5] dark:border-white/15 text-[#18122B] dark:text-white placeholder:text-slate-400 focus:outline-none focus:border-[#8B5CF6] transition-colors resize-y"
+              className="w-full rounded-xl p-4 text-base bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E2DAF5] dark:border-white/15 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-[#8B5CF6] transition-colors resize-y"
             />
 
             {/* Quick Starter Ideas */}
             <div className="flex flex-wrap items-center gap-2 mt-2.5">
-              <span className="text-xs text-slate-500 dark:text-slate-400 mr-1">Try:</span>
+              <span className="text-xs text-slate-600 dark:text-slate-300 mr-1">Try:</span>
               {QUICK_TOPICS.map((sample) => (
                 <button
                   key={sample}
                   type="button"
                   onClick={() => setTopicInput(sample)}
-                  className="text-xs px-2.5 py-1 rounded-lg bg-[#F5F2FC] dark:bg-white/5 text-slate-700 dark:text-slate-300 hover:bg-[#EAE2FA] dark:hover:bg-white/10 transition-colors"
+                  className="text-xs px-2.5 py-1 rounded-lg bg-[#F5F2FC] dark:bg-white/5 text-slate-700 dark:text-slate-200 hover:bg-[#EAE2FA] dark:hover:bg-white/10 transition-colors"
                 >
                   {sample}
                 </button>
@@ -218,9 +238,9 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
             <div>
               <label
                 htmlFor="ref-url"
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5"
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
               >
-                <Link2 className="w-3.5 h-3.5 text-[#3B82F6]" />
+                <Link2 className="w-3.5 h-3.5 text-[#1D4ED8] dark:text-[#60A5FA]" />
                 Reference URL (Optional)
               </label>
               <input
@@ -229,16 +249,16 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                 value={referenceUrl}
                 onChange={(e) => setReferenceUrl(e.target.value)}
                 placeholder="https://example.com/article"
-                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E2DAF5] dark:border-white/15 text-[#18122B] dark:text-white focus:outline-none focus:border-[#8B5CF6]"
+                className="w-full px-3.5 py-2.5 rounded-xl text-sm bg-[#F8F7FC] dark:bg-[#090B14] border border-[#E2DAF5] dark:border-white/15 text-[#18122B] dark:text-white placeholder:text-slate-500 dark:placeholder:text-slate-400 focus:outline-none focus:border-[#8B5CF6]"
               />
             </div>
 
             <div>
               <label
                 htmlFor="lang-select"
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5"
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
               >
-                <Globe className="w-3.5 h-3.5 text-[#22D3EE]" />
+                <Globe className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#22D3EE]" />
                 Podcast Language
               </label>
               <select
@@ -258,9 +278,9 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
             <div>
               <label
                 htmlFor="style-select"
-                className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5"
+                className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5"
               >
-                <Sparkles className="w-3.5 h-3.5 text-[#EC4899]" />
+                <Sparkles className="w-3.5 h-3.5 text-[#BE185D] dark:text-[#F472B6]" />
                 Podcast Style
               </label>
               <select
@@ -278,8 +298,8 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
             </div>
 
             <div>
-              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 mb-1.5">
-                <Clock className="w-3.5 h-3.5 text-[#FB923C]" />
+              <span className="flex items-center gap-1.5 text-xs font-semibold text-slate-700 dark:text-slate-200 mb-1.5">
+                <Clock className="w-3.5 h-3.5 text-[#C2410C] dark:text-[#FB923C]" />
                 Episode Length
               </span>
               <div className="grid grid-cols-3 gap-1 p-1 rounded-xl bg-[#F5F2FC] dark:bg-[#090B14] border border-[#E2DAF5] dark:border-white/15">
@@ -287,11 +307,12 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                   <button
                     key={dur}
                     type="button"
+                    aria-pressed={duration === dur}
                     onClick={() => setDuration(dur)}
                     className={`py-1.5 rounded-lg text-xs font-medium capitalize transition-colors ${
                       duration === dur
-                        ? 'bg-white dark:bg-[#1E1B3A] text-[#6D28D9] dark:text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-[#18122B] dark:hover:text-white'
+                        ? 'bg-white dark:bg-[#1E1B3A] text-[#5B21B6] dark:text-white shadow-sm'
+                        : 'text-slate-700 dark:text-slate-300 hover:text-[#18122B] dark:hover:text-white'
                     }`}
                   >
                     {dur}
@@ -303,7 +324,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
 
           {/* Submit / Cancel Row */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
               Generates grounded script, quality review, 3D explainer model, 800×800 cover art, and multi-host speech.
             </p>
 
@@ -321,7 +342,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                 <button
                   type="submit"
                   disabled={!topicInput.trim()}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#8B5CF6] via-[#EC4899] to-[#FB7185] text-white shadow-md hover:opacity-95 disabled:opacity-40 transition-opacity whitespace-nowrap"
+                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold bg-gradient-to-r from-[#6D28D9] via-[#BE185D] to-[#BE123C] text-white shadow-md hover:opacity-95 disabled:opacity-40 transition-opacity whitespace-nowrap"
                 >
                   <Sparkles className="w-4 h-4" />
                   Generate Podcast
@@ -335,15 +356,11 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
 
       {/* Live Generation Progress & Error Recovery */}
       {(liveState.isGenerating || liveState.error || liveState.plan) && (
-        <motion.section
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-2xl border border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#111526] p-5 sm:p-6 space-y-5"
-        >
+        <section className="animate-studio-enter rounded-2xl border border-[#E5DFF5] dark:border-white/10 bg-white dark:bg-[#111526] p-5 sm:p-6 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               {liveState.isGenerating ? (
-                <Loader2 className="w-5 h-5 text-[#8B5CF6] animate-spin" />
+                <Loader2 className="w-5 h-5 text-[#6D28D9] dark:text-[#C4B5FD] animate-spin" />
               ) : liveState.error ? (
                 <AlertCircle className="w-5 h-5 text-rose-500" />
               ) : (
@@ -353,14 +370,14 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                 <h2 className="font-display font-semibold text-base text-[#18122B] dark:text-white">
                   {liveState.plan ? liveState.plan.title : 'Live Studio Pipeline'}
                 </h2>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+                <p className="text-xs text-slate-600 dark:text-slate-300">
                   {liveState.statusMessage}
                 </p>
               </div>
             </div>
 
             {liveState.audioProgress && (
-              <span className="font-mono-tabular text-xs font-semibold text-[#22D3EE]">
+              <span className="font-mono-tabular text-xs font-semibold text-[#0E7490] dark:text-[#22D3EE]">
                 Segment {liveState.audioProgress.completed} / {liveState.audioProgress.total}
               </span>
             )}
@@ -379,10 +396,10 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                   key={step.id}
                   className={`rounded-xl px-2.5 py-2 border text-xs transition-colors ${
                     isActive
-                      ? 'border-[#8B5CF6] bg-[#F3EEFF] dark:bg-[#1E193E] text-[#6D28D9] dark:text-white font-semibold'
+                      ? 'border-[#8B5CF6] bg-[#F3EEFF] dark:bg-[#1E193E] text-[#5B21B6] dark:text-white font-semibold'
                       : isDone
                       ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
-                      : 'border-[#EEEAF9] dark:border-white/10 text-slate-400 dark:text-slate-500'
+                      : 'border-[#EEEAF9] dark:border-white/10 text-slate-600 dark:text-slate-400'
                   }`}
                 >
                   <div className="truncate">{step.label}</div>
@@ -408,7 +425,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onRetryAudio(liveState.partialEpisode!)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#8B5CF6] to-[#EC4899] text-white"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#6D28D9] to-[#BE185D] text-white"
                     >
                       <RefreshCw className="w-3.5 h-3.5" />
                       Retry Audio Only
@@ -422,16 +439,16 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
           {/* Live Streamed Dialogue Preview */}
           {liveState.turns.length > 0 && (
             <div className="space-y-2 max-h-60 overflow-y-auto pt-2 border-t border-[#EEEAF9] dark:border-white/10">
-              <div className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              <div className="text-xs font-semibold text-slate-600 dark:text-slate-300">
                 Live Script Stream ({liveState.turns.length} turns)
               </div>
               {liveState.turns.slice(-6).map((t) => (
-                <div key={t.id} className="text-xs leading-relaxed text-slate-700 dark:text-slate-300">
+                <div key={t.id} className="text-xs leading-relaxed text-slate-700 dark:text-slate-200">
                   <span
                     className={`font-semibold mr-1.5 ${
                       t.speaker === 'Riya'
-                        ? 'text-[#EC4899]'
-                        : 'text-[#22D3EE]'
+                        ? 'text-[#BE185D] dark:text-[#F472B6]'
+                        : 'text-[#0E7490] dark:text-[#22D3EE]'
                     }`}
                   >
                     {t.speaker}:
@@ -441,7 +458,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
               ))}
             </div>
           )}
-        </motion.section>
+        </section>
       )}
 
       {/* Recent Episodes */}
@@ -450,17 +467,23 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
           <h2 className="font-display font-bold text-xl text-[#18122B] dark:text-white">
             Recent Studio Episodes
           </h2>
-          <span className="text-xs font-mono-tabular text-slate-500 dark:text-slate-400">
+          <span className="text-xs font-mono-tabular text-slate-600 dark:text-slate-300">
             {recentEpisodes.length} saved
           </span>
         </div>
 
-        {recentEpisodes.length === 0 ? (
+        {episodesLoading && recentEpisodes.length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 animate-pulse" aria-busy="true" aria-label="Loading saved episodes">
+            <div className="h-32 rounded-2xl bg-[#EAE4F7] dark:bg-white/5" />
+            <div className="h-32 rounded-2xl bg-[#EAE4F7] dark:bg-white/5 hidden md:block" />
+            <div className="h-32 rounded-2xl bg-[#EAE4F7] dark:bg-white/5 hidden xl:block" />
+          </div>
+        ) : recentEpisodes.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-[#D8CFF2] dark:border-white/15 bg-white/60 dark:bg-[#111526]/60 p-8 text-center">
             <p className="text-sm font-medium text-[#18122B] dark:text-white">
               Your studio shelf is ready.
             </p>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+            <p className="text-xs text-slate-600 dark:text-slate-300 mt-1">
               Enter any one-line topic above to generate your first multilingual two-host podcast and 3D explainer.
             </p>
           </div>
@@ -473,7 +496,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
               >
                 <CoverArtwork episode={ep} size="md" />
                 <div className="min-w-0 flex-1 space-y-1.5">
-                  <div className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                  <div className="text-[11px] text-slate-600 dark:text-slate-300 truncate">
                     {ep.plan.language} · {ep.plan.style} · {formatTime(ep.totalDurationSec)}
                   </div>
                   <h3 className="font-display font-semibold text-sm text-[#18122B] dark:text-white line-clamp-2">
@@ -483,7 +506,7 @@ export const StudioCreateView: React.FC<StudioCreateViewProps> = ({
                     <button
                       type="button"
                       onClick={() => onOpenEpisode(ep, 'transcript')}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#8B5CF6] text-white hover:bg-[#7C3AED] transition-colors whitespace-nowrap"
+                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#6D28D9] text-white hover:bg-[#5B21B6] transition-colors whitespace-nowrap"
                     >
                       <Play className="w-3 h-3" />
                       Listen

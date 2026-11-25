@@ -144,12 +144,20 @@ function wrapTitleLines(ctx: CanvasRenderingContext2D, text: string, maxWidth: n
   return lines.slice(0, 4);
 }
 
-export function renderCoverCanvas(canvas: HTMLCanvasElement, episode: Episode): string {
+export function renderCoverCanvas(
+  canvas: HTMLCanvasElement,
+  episode: Episode,
+  targetSize = 800
+): string {
   const SIZE = 800;
-  canvas.width = SIZE;
-  canvas.height = SIZE;
+  canvas.width = targetSize;
+  canvas.height = targetSize;
   const ctx = canvas.getContext('2d');
   if (!ctx) return '';
+  ctx.save();
+  if (targetSize !== SIZE) {
+    ctx.scale(targetSize / SIZE, targetSize / SIZE);
+  }
 
   const [c1, c2, c3] = episode.coverSpec.palette;
   const style = episode.coverSpec.visualStyle;
@@ -235,6 +243,7 @@ export function renderCoverCanvas(canvas: HTMLCanvasElement, episode: Episode): 
   ctx.fillStyle = 'rgba(255,255,255,0.88)';
   ctx.font = '600 20px "Plus Jakarta Sans", system-ui, sans-serif';
   ctx.fillText('Hosted by Riya & Arjun', 120, 721);
+  ctx.restore();
 
   return canvas.toDataURL('image/png');
 }
@@ -254,13 +263,14 @@ export const CoverArtwork: React.FC<CoverArtworkProps> = ({
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [dataUrl, setDataUrl] = useState<string>(episode.coverImageDataUrl || '');
+  const targetCanvasSize = editable || size === 'lg' ? 800 : 240;
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const url = renderCoverCanvas(canvas, episode);
+    const url = renderCoverCanvas(canvas, episode, targetCanvasSize);
     setDataUrl(url);
-  }, [episode.id, episode.plan.title, episode.plan.language, episode.coverSpec]);
+  }, [episode.id, episode.plan.title, episode.plan.language, episode.coverSpec, targetCanvasSize]);
 
   const handleRegenerate = () => {
     const nextPalette = PALETTES[Math.floor(Math.random() * PALETTES.length)];
@@ -313,6 +323,10 @@ export const CoverArtwork: React.FC<CoverArtworkProps> = ({
           <img
             src={dataUrl}
             alt={`Cover artwork for ${episode.plan.title}`}
+            width={targetCanvasSize}
+            height={targetCanvasSize}
+            loading={size === 'lg' ? 'eager' : 'lazy'}
+            decoding="async"
             className="w-full h-full object-cover"
           />
         ) : (
@@ -332,25 +346,25 @@ export const CoverArtwork: React.FC<CoverArtworkProps> = ({
           <button
             type="button"
             onClick={handleRegenerate}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] hover:border-[#8B5CF6] transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] text-[#18122B] dark:text-slate-100 hover:border-[#8B5CF6] transition-colors whitespace-nowrap"
           >
-            <RefreshCw className="w-3.5 h-3.5 text-[#8B5CF6]" />
+            <RefreshCw className="w-3.5 h-3.5 text-[#6D28D9] dark:text-[#C4B5FD]" />
             Regenerate Art
           </button>
           <button
             type="button"
             onClick={handleStyleCycle}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] hover:border-[#EC4899] transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] text-[#18122B] dark:text-slate-100 hover:border-[#EC4899] transition-colors whitespace-nowrap"
           >
-            <Palette className="w-3.5 h-3.5 text-[#EC4899]" />
+            <Palette className="w-3.5 h-3.5 text-[#BE185D] dark:text-[#F472B6]" />
             Style: {episode.coverSpec.visualStyle}
           </button>
           <button
             type="button"
             onClick={handleDownload}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] hover:border-[#22D3EE] transition-colors whitespace-nowrap"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg border border-[#E2DAF5] dark:border-white/10 bg-white dark:bg-[#14182D] text-[#18122B] dark:text-slate-100 hover:border-[#22D3EE] transition-colors whitespace-nowrap"
           >
-            <Download className="w-3.5 h-3.5 text-[#22D3EE]" />
+            <Download className="w-3.5 h-3.5 text-[#0E7490] dark:text-[#22D3EE]" />
             800×800 PNG
           </button>
         </div>

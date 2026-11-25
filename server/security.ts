@@ -89,6 +89,36 @@ export const VoiceProfileSaveSchema = z.object({
   sampleDurationSec: z.number().min(0).max(600).optional(),
 });
 
+const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
+const SAFE_RASTER_DATA_URL_RE = /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/;
+
+export const EpisodePatchSchema = z
+  .object({
+    title: z.string().trim().min(1).max(180).optional(),
+    coverSpec: z
+      .object({
+        palette: z.tuple([
+          z.string().regex(HEX_COLOR_RE),
+          z.string().regex(HEX_COLOR_RE),
+          z.string().regex(HEX_COLOR_RE),
+        ]).optional(),
+        motif: z
+          .enum(['waves', 'neural', 'orbit', 'prism', 'bio', 'network', 'architecture', 'pulse'])
+          .optional(),
+        visualStyle: z.enum(['vibrant', 'editorial', 'neon', 'minimal']).optional(),
+        badgeLabel: z.string().trim().max(80).optional(),
+        subtitleLine: z.string().trim().max(140).optional(),
+      })
+      .strict()
+      .optional(),
+    coverImageDataUrl: z
+      .string()
+      .max(1_500_000)
+      .regex(SAFE_RASTER_DATA_URL_RE, 'Cover image must be a valid PNG, JPEG, or WebP data URL.')
+      .optional(),
+  })
+  .strict();
+
 export function sanitizeText(input: string): string {
   return input.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').trim();
 }
@@ -133,6 +163,12 @@ export async function validateSafeExternalUrl(rawUrl: string): Promise<URL> {
     throw Object.assign(new Error('Only http:// and https:// URLs are permitted.'), {
       statusCode: 400,
       code: 'UNSUPPORTED_URL_SCHEME',
+    });
+  }
+  if (parsed.username || parsed.password) {
+    throw Object.assign(new Error('URLs with embedded credentials are not permitted.'), {
+      statusCode: 400,
+      code: 'INVALID_URL_CREDENTIALS',
     });
   }
 
